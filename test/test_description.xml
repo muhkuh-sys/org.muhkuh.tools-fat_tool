@@ -1,0 +1,7 @@
+<TestDescription name="Make Netscript Image" version="1">
+	<Code>
+		package.cpath = package.cpath..";D:/projekt/bsl_libfat/msvc8/fat_tool/Release/?.dll"
+		muhkuh.include("make_nsc_img.lua", "luafat_test")
+		luafat_test.run()
+	</Code>
+</TestDescription>
