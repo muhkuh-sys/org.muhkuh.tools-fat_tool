@@ -227,7 +227,7 @@ static bool _FAT_partition_mount ( PARTITION* partition) {
 
 	// Read in boot sector
 	if ( !_FAT_disc_readSectors (partition->disc, bootSector, 1, sectorBuffer)) 
-  {
+    {
 		return false;
 	}
 

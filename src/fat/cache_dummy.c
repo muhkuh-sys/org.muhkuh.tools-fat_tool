@@ -27,6 +27,8 @@ bool _FAT_cache_checkBoundaries(CACHE* cache, const void* buffer, u32 sector, u3
 		sector*ulBlockSize + offset + size >ulDiskSize ||
 		ulBlockSize != sectorsize ||
 		offset + size > sectorsize) {
+			if (cache->disc->pfnErrorHandler)
+				cache->disc->pfnErrorHandler(cache->disc->pvErrUser, "_FAT_cache_checkBoundaries: illegal sector access");
 		return false;
 	} else {
 		return true;

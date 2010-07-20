@@ -26,15 +26,23 @@ fatfs::fatfs(){
 	m_ptRamDiskPartition = NULL;
 	m_pvDiskMem = NULL;
 	m_sizDiskMemSize = 0;
-	m_pfnErrorHandler = &fatfs::error;
+	setHandlers(&fatfs::error, &fatfs::printMessage, NULL);
+/*	m_pfnErrorHandler = &fatfs::error;
 	m_pfnvprintf = &fatfs::printMessage;
-	m_pvUser = NULL;
+	m_pvUser = NULL;*/
 }
 
 void fatfs::setHandlers(FN_FATFS_ERROR_HANDLER pfnErrorHandler, FN_FATFS_VPRINTF pfn_vprintf, void* pvUser){
 	m_pfnErrorHandler = pfnErrorHandler;
 	m_pfnvprintf = pfn_vprintf;
 	m_pvUser = pvUser;
+	setDiscIOErrorHandlers();
+}
+
+void fatfs::setDiscIOErrorHandlers(){
+	m_tIoIfRamdisk.pfnErrorHandler = m_pfnErrorHandler;
+	m_tIoIfRamdisk.pfnvprintf = m_pfnvprintf;
+	m_tIoIfRamdisk.pvErrUser = m_pvUser;
 }
 
 void fatfs::error(void *pvUser, const char* strFmt, ...){
@@ -81,8 +89,9 @@ bool fatfs::create(size_t sizSectorSize, size_t sizNumSectors, size_t sizTotalSi
 	m_tIoIfRamdisk.pvUser             = (void*)((char*)m_pvDiskMem + sizOffset);
 	m_tIoIfRamdisk.ulStartOffset      = 0;
 	m_tIoIfRamdisk.ulDiskSize         = (unsigned long) (sizSectorSize * sizNumSectors);
-	
+	setDiscIOErrorHandlers();
 	_FAT_disc_startup(&m_tIoIfRamdisk); // does nothing
+
 	/* format and mount file system */
 	iResult = formatFat(&m_tIoIfRamdisk); 
 	if (iResult==0){
@@ -123,6 +132,12 @@ bool fatfs::mount(const char* pabData, size_t sizTotalSize, size_t sizOffset){
 		return false;
 	}
 
+	if (sizSectorSize >= sizTotalSize - sizOffset||
+		sizNumSectors >= sizTotalSize - sizOffset||
+		sizSectorSize * sizNumSectors > sizTotalSize - sizOffset) {
+		FAILSOFT("fatfs mount: invalid sector size/sector count");
+	}
+
 	m_pvDiskMem = malloc(sizTotalSize);
 	if (m_pvDiskMem == NULL){
 		FAILHARD("fatfs mount: Could not allocate memory for image");
@@ -137,7 +152,7 @@ bool fatfs::mount(const char* pabData, size_t sizTotalSize, size_t sizOffset){
 	m_tIoIfRamdisk.pvUser             = (void*)((char*)m_pvDiskMem + sizOffset);
 	m_tIoIfRamdisk.ulStartOffset      = 0;
 	m_tIoIfRamdisk.ulDiskSize         = (unsigned long) (sizSectorSize * sizNumSectors);
-	
+	setDiscIOErrorHandlers();
 	_FAT_disc_startup(&m_tIoIfRamdisk); // does nothing
 
 	/* try to mount the new image */

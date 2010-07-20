@@ -23,6 +23,11 @@ public:
 	/* set error and print handlers (for Lua binding */
 	void setHandlers(FN_FATFS_ERROR_HANDLER pfnErrorHandler, FN_FATFS_VPRINTF pfn_vprintf, void* pvUser);
 
+
+	/* copy the current error handlers into the disc IO structure */
+	void setDiscIOErrorHandlers();
+
+
 	/* 
 	   allocates totalSize bytes,
 	   formats a FAT filesystem at offset spanning numSectors sectors,

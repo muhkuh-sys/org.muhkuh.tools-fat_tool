@@ -27,7 +27,12 @@ IO_INTERFACE g_tIoIfRamDisk =
   .ulBlockSize        = 0,
   .pvUser             = NULL,
   .ulStartOffset      = 0,
-  .ulDiskSize         = 0
+  .ulDiskSize         = 0,
+
+  .pfnErrorHandler    = NULL,
+  .pfnvprintf         = NULL,
+  .pvErrUser          = NULL
+
 };
 #else
 IO_INTERFACE g_tIoIfRamDisk =
@@ -43,9 +48,28 @@ IO_INTERFACE g_tIoIfRamDisk =
   0,
   NULL,
   0,
-  0
+  0, 
+
+  NULL,
+  NULL,
+  NULL
 };
 #endif
+
+
+bool drv_ramdisk_checkBoundaries(const struct IO_INTERFACE_STRUCT* ptIO, unsigned long sector, unsigned long numSectors){
+	unsigned long ulSectorSize = ptIO->ulBlockSize;
+	unsigned long ulDiskSize = ptIO->ulDiskSize;
+
+	if (sector * ulSectorSize > ulDiskSize || 
+		(sector + numSectors) * ulSectorSize > ulDiskSize) {
+		if (ptIO->pfnErrorHandler)
+			ptIO->pfnErrorHandler(ptIO->pvErrUser, "drv_ramdisk_checkBoundaries: illegal sector access");
+		return false;
+	} else {
+		return true;
+	}
+}
 
 /*
 Read numSectors sectors from a disc, starting at sector. 
@@ -56,10 +80,11 @@ buffer is a pointer to the memory to fill
 int drv_ramdisk_readSectors(const struct IO_INTERFACE_STRUCT* ptIO, unsigned long sector, unsigned long numSectors, void* buffer) 
 {
   unsigned long ulSectorSize = ptIO->ulBlockSize;
-  unsigned long ulDiskSize = ptIO->ulDiskSize;
+  //unsigned long ulDiskSize = ptIO->ulDiskSize;
   unsigned char *pbData = (unsigned char*)ptIO->pvUser;
 
-  if (sector * ulSectorSize < ulDiskSize && (sector + numSectors) * ulSectorSize < ulDiskSize){
+  if (drv_ramdisk_checkBoundaries(ptIO, sector, numSectors)){
+  //if (sector * ulSectorSize < ulDiskSize && (sector + numSectors) * ulSectorSize < ulDiskSize){
 	memcpy(buffer, pbData + sector * ulSectorSize, numSectors * ulSectorSize);
 	return 1;
   } else {
@@ -76,10 +101,11 @@ buffer is a pointer to the memory to read from
 int drv_ramdisk_writeSectors(const struct IO_INTERFACE_STRUCT* ptIO, unsigned long sector, unsigned long numSectors, const void* buffer) 
 {
   unsigned long ulSectorSize = ptIO->ulBlockSize;
-  unsigned long ulDiskSize = ptIO->ulDiskSize;
+  //unsigned long ulDiskSize = ptIO->ulDiskSize;
   unsigned char *pbData = (unsigned char*)ptIO->pvUser;
 
-  if (sector * ulSectorSize < ulDiskSize && (sector + numSectors) * ulSectorSize < ulDiskSize){
+ // if (sector * ulSectorSize < ulDiskSize && (sector + numSectors) * ulSectorSize < ulDiskSize){
+  if (drv_ramdisk_checkBoundaries(ptIO, sector, numSectors)){
 	memcpy(pbData + sector * ulSectorSize, buffer, numSectors * ulSectorSize);
 	return 1;
   }else {

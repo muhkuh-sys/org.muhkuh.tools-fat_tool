@@ -18,6 +18,10 @@ typedef int (* FN_MEDIUM_WRITESECTORS)(const struct IO_INTERFACE_STRUCT* ptIO, u
 typedef int (* FN_MEDIUM_CLEARSTATUS)(const struct IO_INTERFACE_STRUCT* ptIO);
 typedef int (* FN_MEDIUM_SHUTDOWN)(const struct IO_INTERFACE_STRUCT* ptIO);
 
+
+typedef void (*FN_FATFS_ERROR_HANDLER)(void *pvUser, const char* strFormat, ...);
+typedef void (*FN_FATFS_VPRINTF)(void *pvUser, const char* strFormat, ...);
+
 struct IO_INTERFACE_STRUCT {
   unsigned long           ioType ;
   unsigned long           features ;
@@ -29,9 +33,14 @@ struct IO_INTERFACE_STRUCT {
   FN_MEDIUM_SHUTDOWN      fn_shutdown ;
   unsigned long           ulBlockSize;
   unsigned long           ulPagePerSecCnt;
-  void                   *pvUser;
+  void                    *pvUser;
   unsigned long           ulStartOffset;
   unsigned long           ulDiskSize;
+
+  FN_FATFS_ERROR_HANDLER  pfnErrorHandler;
+  FN_FATFS_VPRINTF        pfnvprintf;
+  void*                   pvErrUser;
+
 } ;
 
 typedef struct IO_INTERFACE_STRUCT IO_INTERFACE ;
