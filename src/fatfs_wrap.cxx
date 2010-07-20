@@ -1461,8 +1461,10 @@ SWIG_Lua_InstallConstants(lua_State* L, swig_lua_const_info constants[]) {
 /* -------- TYPES TABLE (BEGIN) -------- */
 
 #define SWIGTYPE_p_fatfs swig_types[0]
-static swig_type_info *swig_types[2];
-static swig_module_info swig_module = {swig_types, 1, 0, 0, 0, 0};
+#define SWIGTYPE_p_int swig_types[1]
+#define SWIGTYPE_p_lua_State swig_types[2]
+static swig_type_info *swig_types[4];
+static swig_module_info swig_module = {swig_types, 3, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -1479,6 +1481,9 @@ typedef struct{} LANGUAGE_OBJ;
 
 
 	#include "fatfs.h"
+	#include "fat/bit_ops.h"
+	#include "fat/directory.h"
+	
 typedef struct
 {
 	char *pcData;
@@ -1491,23 +1496,62 @@ typedef struct
 	size_t sizData;
 } tBinaryDataFree;
 
+void fatfs_error_handler(void* pvUser, const char* strFormat, ...) {
+	va_list argp;	
+	char buf[1024];
+	lua_State* L; 
+	if (pvUser) {
+		L = (lua_State*)pvUser; 
+		lua_getglobal(L, "print");  
+		if (lua_iscfunction(L, -1)) {
+			va_start(argp, strFormat);
+			_vsnprintf(buf, 1023, strFormat, argp);
+			va_end(argp);
+			lua_pushstring(L, buf);
+			lua_error(L);
+		} else {
+			lua_pop(L, 1);
+		}
+	}	
+}
+
+void fatfs_snprintf(void* pvUser, const char* strFormat, ...) {
+	va_list argp;	
+	char buf[1024];
+	lua_State* L; 
+	if (pvUser) {
+		L = (lua_State*)pvUser; 
+		lua_getglobal(L, "print");  
+		if (lua_iscfunction(L, -1)) {
+			va_start(argp, strFormat);
+			_vsnprintf(buf, 1023, strFormat, argp);
+			va_end(argp);
+			lua_pushstring(L, buf);
+			lua_call(L, 1, 0);  
+		} else {
+			lua_pop(L, 1);
+		}
+	}	
+}
+
+
 SWIGINTERN void fatfs___gc(fatfs *self){
 		delete self;
 	}
-SWIGINTERN fatfs *fatfs_create(size_t sizSectorSize,size_t sizNumSectors,size_t sizTotalSize=0,size_t sizOffset=0){
-		fatfs* fs = new fatfs(sizSectorSize, sizNumSectors, sizTotalSize, sizOffset);
-		
-		if (fs->checkReady()) {
+SWIGINTERN fatfs *fatfs_create(lua_State *L,size_t sizSectorSize,size_t sizNumSectors,size_t sizTotalSize=0,size_t sizOffset=0){
+		fatfs* fs = new fatfs();
+		fs->setHandlers(fatfs_error_handler, fatfs_snprintf, L);
+		if (fs->create(sizSectorSize, sizNumSectors, sizTotalSize, sizOffset)){
 			return fs;
 		} else {
 			delete fs;
 			return NULL;
 		}
 	}
-SWIGINTERN fatfs *fatfs_mount(char const *pcData,size_t sizData,size_t sizOffset=0){
-		fatfs* fs = new fatfs(pcData, sizData, sizOffset);
-		
-		if (fs->checkReady()) {
+SWIGINTERN fatfs *fatfs_mount(lua_State *L,char const *pcData,size_t sizData,size_t sizOffset=0){
+		fatfs* fs = new fatfs();
+		fs->setHandlers(fatfs_error_handler, fatfs_snprintf, L);
+		if (fs->mount(pcData, sizData, sizOffset)) {
 			return fs;
 		} else {
 			delete fs;
@@ -1529,6 +1573,37 @@ SWIGINTERN tBinaryData fatfs_getimage(fatfs *self){
 		tBinaryData tData;	
 		tData.pcData = self->getimage((unsigned long*) &tData.sizData);
 		return tData;
+	}
+SWIGINTERN void fatfs_getdirentries(fatfs *self,lua_State *L,int *piNumResults,char *pszPath){
+		u32 ulDirCluster;
+		DIR_ENTRY tDirEntry;
+		bool fIsDir;
+		unsigned long ulFilesize;
+		int iEntryCount;
+		
+		*piNumResults = 0;			
+		if (!self->checkReady()) return;	
+		if (!self->get_dir_start_cluster(pszPath, &ulDirCluster)) return;
+
+		lua_newtable(L);
+		*piNumResults = 1;	
+		iEntryCount = 0;
+		
+		if( self->getfirstdirentry(&tDirEntry, ulDirCluster)) do {
+			fIsDir = _FAT_directory_isDirectory(&tDirEntry);
+			
+			lua_newtable(L);
+			lua_pushstring(L, tDirEntry.filename);
+			lua_setfield(L, -2, "name");
+			if (!fIsDir) {
+				ulFilesize = self->getfilesize(&tDirEntry);
+				lua_pushnumber(L, ulFilesize);
+				lua_setfield(L, -2, "filesize");
+			}
+			lua_pushboolean(L, fIsDir);
+			lua_setfield(L, -2, "isdir");
+			lua_rawseti(L, -2, ++iEntryCount);
+		} while (self->getnextdirentry(&tDirEntry));	
 	}
 #ifdef __cplusplus
 extern "C" {
@@ -1564,7 +1639,7 @@ fail:
 static int _wrap_fatfs_cd(lua_State* L) {
   int SWIG_arg = -1;
   fatfs *arg1 = (fatfs *) 0 ;
-  char *arg2 = (char *) "\\" ;
+  char *arg2 = (char *) "/" ;
   bool result;
   
   SWIG_check_num_args("cd",1,2)
@@ -1642,9 +1717,10 @@ static int _wrap_fatfs_writefile(lua_State* L) {
     SWIG_fail_ptr("fatfs_writefile",1,SWIGTYPE_p_fatfs);
   }
   
-  {
-    arg2 = (char*)lua_tolstring(L, 2, &arg3);
-  }
+  
+  arg2 = (char*)lua_tolstring(L, 2, &arg3);
+  if (arg2==NULL) SWIG_fail_arg("fatfs_writefile", 2,"char *");
+  
   arg4 = (char *)lua_tostring(L, 3);
   result = (bool)(arg1)->writefile((char const *)arg2,arg3,arg4);
   SWIG_arg=0;
@@ -1675,9 +1751,10 @@ static int _wrap_fatfs_writeraw(lua_State* L) {
     SWIG_fail_ptr("fatfs_writeraw",1,SWIGTYPE_p_fatfs);
   }
   
-  {
-    arg2 = (char*)lua_tolstring(L, 2, &arg3);
-  }
+  
+  arg2 = (char*)lua_tolstring(L, 2, &arg3);
+  if (arg2==NULL) SWIG_fail_arg("fatfs_writeraw", 2,"char *");
+  
   arg4 = (size_t)lua_tonumber(L, 3);
   result = (bool)(arg1)->writeraw((char const *)arg2,arg3,arg4);
   SWIG_arg=0;
@@ -1748,6 +1825,123 @@ fail:
 }
 
 
+static int _wrap_fatfs_getfilesize(lua_State* L) {
+  int SWIG_arg = -1;
+  fatfs *arg1 = (fatfs *) 0 ;
+  char *arg2 = (char *) 0 ;
+  long result;
+  
+  SWIG_check_num_args("getfilesize",2,2)
+  if(!SWIG_isptrtype(L,1)) SWIG_fail_arg("getfilesize",1,"fatfs *");
+  if(!lua_isstring(L,2)) SWIG_fail_arg("getfilesize",2,"char *");
+  
+  if (!SWIG_IsOK(SWIG_ConvertPtr(L,1,(void**)&arg1,SWIGTYPE_p_fatfs,0))){
+    SWIG_fail_ptr("fatfs_getfilesize",1,SWIGTYPE_p_fatfs);
+  }
+  
+  arg2 = (char *)lua_tostring(L, 2);
+  result = (long)(arg1)->getfilesize(arg2);
+  SWIG_arg=0;
+  
+  if (result>=0) {
+    lua_pushnumber(L, result);
+    ++SWIG_arg;		
+  }
+  
+  return SWIG_arg;
+  
+  if(0) SWIG_fail;
+  
+fail:
+  lua_error(L);
+  return SWIG_arg;
+}
+
+
+static int _wrap_fatfs_gettype(lua_State* L) {
+  int SWIG_arg = -1;
+  fatfs *arg1 = (fatfs *) 0 ;
+  char *arg2 = (char *) 0 ;
+  fatfs::Filetypes result;
+  
+  SWIG_check_num_args("gettype",2,2)
+  if(!SWIG_isptrtype(L,1)) SWIG_fail_arg("gettype",1,"fatfs *");
+  if(!lua_isstring(L,2)) SWIG_fail_arg("gettype",2,"char *");
+  
+  if (!SWIG_IsOK(SWIG_ConvertPtr(L,1,(void**)&arg1,SWIGTYPE_p_fatfs,0))){
+    SWIG_fail_ptr("fatfs_gettype",1,SWIGTYPE_p_fatfs);
+  }
+  
+  arg2 = (char *)lua_tostring(L, 2);
+  result = (fatfs::Filetypes)(arg1)->gettype(arg2);
+  SWIG_arg=0;
+  lua_pushnumber(L, (lua_Number)(int)(result)); SWIG_arg++;
+  return SWIG_arg;
+  
+  if(0) SWIG_fail;
+  
+fail:
+  lua_error(L);
+  return SWIG_arg;
+}
+
+
+static int _wrap_fatfs_isfile(lua_State* L) {
+  int SWIG_arg = -1;
+  fatfs *arg1 = (fatfs *) 0 ;
+  char *arg2 = (char *) 0 ;
+  bool result;
+  
+  SWIG_check_num_args("isfile",2,2)
+  if(!SWIG_isptrtype(L,1)) SWIG_fail_arg("isfile",1,"fatfs *");
+  if(!lua_isstring(L,2)) SWIG_fail_arg("isfile",2,"char *");
+  
+  if (!SWIG_IsOK(SWIG_ConvertPtr(L,1,(void**)&arg1,SWIGTYPE_p_fatfs,0))){
+    SWIG_fail_ptr("fatfs_isfile",1,SWIGTYPE_p_fatfs);
+  }
+  
+  arg2 = (char *)lua_tostring(L, 2);
+  result = (bool)(arg1)->isfile(arg2);
+  SWIG_arg=0;
+  lua_pushboolean(L,(int)result); SWIG_arg++;
+  return SWIG_arg;
+  
+  if(0) SWIG_fail;
+  
+fail:
+  lua_error(L);
+  return SWIG_arg;
+}
+
+
+static int _wrap_fatfs_isdir(lua_State* L) {
+  int SWIG_arg = -1;
+  fatfs *arg1 = (fatfs *) 0 ;
+  char *arg2 = (char *) 0 ;
+  bool result;
+  
+  SWIG_check_num_args("isdir",2,2)
+  if(!SWIG_isptrtype(L,1)) SWIG_fail_arg("isdir",1,"fatfs *");
+  if(!lua_isstring(L,2)) SWIG_fail_arg("isdir",2,"char *");
+  
+  if (!SWIG_IsOK(SWIG_ConvertPtr(L,1,(void**)&arg1,SWIGTYPE_p_fatfs,0))){
+    SWIG_fail_ptr("fatfs_isdir",1,SWIGTYPE_p_fatfs);
+  }
+  
+  arg2 = (char *)lua_tostring(L, 2);
+  result = (bool)(arg1)->isdir(arg2);
+  SWIG_arg=0;
+  lua_pushboolean(L,(int)result); SWIG_arg++;
+  return SWIG_arg;
+  
+  if(0) SWIG_fail;
+  
+fail:
+  lua_error(L);
+  return SWIG_arg;
+}
+
+
 static int _wrap_fatfs___gc(lua_State* L) {
   int SWIG_arg = -1;
   fatfs *arg1 = (fatfs *) 0 ;
@@ -1774,26 +1968,30 @@ fail:
 
 static int _wrap_fatfs_create(lua_State* L) {
   int SWIG_arg = -1;
-  size_t arg1 ;
+  lua_State *arg1 = (lua_State *) 0 ;
   size_t arg2 ;
-  size_t arg3 = (size_t) 0 ;
+  size_t arg3 ;
   size_t arg4 = (size_t) 0 ;
+  size_t arg5 = (size_t) 0 ;
   fatfs *result = 0 ;
+  
+  
+  arg1 = L;
   
   SWIG_check_num_args("fatfs_create",2,4)
   if(!lua_isnumber(L,1)) SWIG_fail_arg("fatfs_create",1,"size_t");
   if(!lua_isnumber(L,2)) SWIG_fail_arg("fatfs_create",2,"size_t");
   if(lua_gettop(L)>=3 && !lua_isnumber(L,3)) SWIG_fail_arg("fatfs_create",3,"size_t");
   if(lua_gettop(L)>=4 && !lua_isnumber(L,4)) SWIG_fail_arg("fatfs_create",4,"size_t");
-  arg1 = (size_t)lua_tonumber(L, 1);
-  arg2 = (size_t)lua_tonumber(L, 2);
+  arg2 = (size_t)lua_tonumber(L, 1);
+  arg3 = (size_t)lua_tonumber(L, 2);
   if(lua_gettop(L)>=3){
-    arg3 = (size_t)lua_tonumber(L, 3);
+    arg4 = (size_t)lua_tonumber(L, 3);
   }
   if(lua_gettop(L)>=4){
-    arg4 = (size_t)lua_tonumber(L, 4);
+    arg5 = (size_t)lua_tonumber(L, 4);
   }
-  result = (fatfs *)fatfs_create(arg1,arg2,arg3,arg4);
+  result = (fatfs *)fatfs_create(arg1,arg2,arg3,arg4,arg5);
   SWIG_arg=0;
   SWIG_NewPointerObj(L,result,SWIGTYPE_p_fatfs,0); SWIG_arg++; 
   return SWIG_arg;
@@ -1808,20 +2006,25 @@ fail:
 
 static int _wrap_fatfs_mount(lua_State* L) {
   int SWIG_arg = -1;
-  char *arg1 = (char *) 0 ;
-  size_t arg2 ;
-  size_t arg3 = (size_t) 0 ;
+  lua_State *arg1 = (lua_State *) 0 ;
+  char *arg2 = (char *) 0 ;
+  size_t arg3 ;
+  size_t arg4 = (size_t) 0 ;
   fatfs *result = 0 ;
+  
+  
+  arg1 = L;
   
   SWIG_check_num_args("fatfs_mount",1,2)
   if(lua_gettop(L)>=2 && !lua_isnumber(L,2)) SWIG_fail_arg("fatfs_mount",2,"size_t");
-  {
-    arg1 = (char*)lua_tolstring(L, 1, &arg2);
-  }
+  
+  arg2 = (char*)lua_tolstring(L, 1, &arg3);
+  if (arg2==NULL) SWIG_fail_arg("fatfs_mount", 2,"char *");
+  
   if(lua_gettop(L)>=2){
-    arg3 = (size_t)lua_tonumber(L, 2);
+    arg4 = (size_t)lua_tonumber(L, 2);
   }
-  result = (fatfs *)fatfs_mount((char const *)arg1,arg2,arg3);
+  result = (fatfs *)fatfs_mount(arg1,(char const *)arg2,arg3,arg4);
   SWIG_arg=0;
   SWIG_NewPointerObj(L,result,SWIGTYPE_p_fatfs,0); SWIG_arg++; 
   return SWIG_arg;
@@ -1934,6 +2137,45 @@ fail:
 }
 
 
+static int _wrap_fatfs_getdirentries(lua_State* L) {
+  int SWIG_arg = -1;
+  fatfs *arg1 = (fatfs *) 0 ;
+  lua_State *arg2 = (lua_State *) 0 ;
+  int *arg3 = (int *) 0 ;
+  char *arg4 = (char *) 0 ;
+  
+  
+  arg2 = L;
+  
+  
+  int i;
+  arg3 = &i;
+  
+  SWIG_check_num_args("getdirentries",2,2)
+  if(!SWIG_isptrtype(L,1)) SWIG_fail_arg("getdirentries",1,"fatfs *");
+  if(!lua_isstring(L,2)) SWIG_fail_arg("getdirentries",2,"char *");
+  
+  if (!SWIG_IsOK(SWIG_ConvertPtr(L,1,(void**)&arg1,SWIGTYPE_p_fatfs,0))){
+    SWIG_fail_ptr("fatfs_getdirentries",1,SWIGTYPE_p_fatfs);
+  }
+  
+  arg4 = (char *)lua_tostring(L, 2);
+  fatfs_getdirentries(arg1,arg2,arg3,arg4);
+  SWIG_arg=0;
+  
+  
+  SWIG_arg+=*arg3;
+  
+  return SWIG_arg;
+  
+  if(0) SWIG_fail;
+  
+fail:
+  lua_error(L);
+  return SWIG_arg;
+}
+
+
 static int _wrap_new_fatfs(lua_State* L) {
   int SWIG_arg = -1;
   fatfs *result = 0 ;
@@ -1989,10 +2231,15 @@ static swig_lua_method swig_fatfs_methods[] = {
     {"writeraw", _wrap_fatfs_writeraw}, 
     {"deletefile", _wrap_fatfs_deletefile}, 
     {"fileexists", _wrap_fatfs_fileexists}, 
+    {"getfilesize", _wrap_fatfs_getfilesize}, 
+    {"gettype", _wrap_fatfs_gettype}, 
+    {"isfile", _wrap_fatfs_isfile}, 
+    {"isdir", _wrap_fatfs_isdir}, 
     {"__gc", _wrap_fatfs___gc}, 
     {"readfile", _wrap_fatfs_readfile}, 
     {"readraw", _wrap_fatfs_readraw}, 
     {"getimage", _wrap_fatfs_getimage}, 
+    {"getdirentries", _wrap_fatfs_getdirentries}, 
     {0,0}
 };
 static swig_lua_attribute swig_fatfs_attributes[] = {
@@ -2017,21 +2264,32 @@ static swig_lua_var_info swig_variables[] = {
 };
 
 static swig_lua_const_info swig_constants[] = {
+{ SWIG_LUA_INT,     (char *)"fatfs_TYPE_NONE", (long) fatfs::TYPE_NONE, 0, 0, 0},
+{ SWIG_LUA_INT,     (char *)"fatfs_TYPE_FILE", (long) fatfs::TYPE_FILE, 0, 0, 0},
+{ SWIG_LUA_INT,     (char *)"fatfs_TYPE_DIRECTORY", (long) fatfs::TYPE_DIRECTORY, 0, 0, 0},
     {0,0,0,0,0,0}
 };
 
 /* -------- TYPE CONVERSION AND EQUIVALENCE RULES (BEGIN) -------- */
 
 static swig_type_info _swigt__p_fatfs = {"_p_fatfs", "fatfs *", 0, 0, (void*)&_wrap_class_fatfs, 0};
+static swig_type_info _swigt__p_int = {"_p_int", "int *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_lua_State = {"_p_lua_State", "lua_State *", 0, 0, (void*)0, 0};
 
 static swig_type_info *swig_type_initial[] = {
   &_swigt__p_fatfs,
+  &_swigt__p_int,
+  &_swigt__p_lua_State,
 };
 
 static swig_cast_info _swigc__p_fatfs[] = {  {&_swigt__p_fatfs, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_int[] = {  {&_swigt__p_int, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_lua_State[] = {  {&_swigt__p_lua_State, 0, 0, 0},{0, 0, 0, 0}};
 
 static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_fatfs,
+  _swigc__p_int,
+  _swigc__p_lua_State,
 };
 
 

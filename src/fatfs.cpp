@@ -1,11 +1,11 @@
 #include "fatfs.h"
-
-
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
+#include "fat/bit_ops.h"
 #include "fat/common.h"
 #include "fat/cache.h"
+#include "fat/directory.h"
 #include "fat/file_allocation_table.h"
 #include "fat/format.h"
 #include "fat/file_functions.h"
@@ -19,44 +19,55 @@
 	size_t					m_sizDiskMemSize;
 */
 
-// define USE_WXLOG to use the dll under wxLua (Muhkuh), undefine it to use the dll under normal Lua
-//#define USE_WXLOG
-#ifdef USE_WXLOG
-	#include <wx/wx.h>
-	#define MESSAGE(strFormat, ...) wxLogMessage(wxT(strFormat), __VA_ARGS__)
-#else
-	#define MESSAGE(strFormat, ...) printf(strFormat "\n", __VA_ARGS__)
-#endif
-#define ERRORMESSAGE MESSAGE
 
 fatfs::fatfs(){
-	MESSAGE("Default constructor");
+	//MESSAGE("Default constructor");
 	m_fReady = false;
 	m_ptRamDiskPartition = NULL;
 	m_pvDiskMem = NULL;
 	m_sizDiskMemSize = 0;
+	m_pfnErrorHandler = &fatfs::error;
+	m_pfnvprintf = &fatfs::printMessage;
+	m_pvUser = NULL;
 }
 
-fatfs::fatfs(size_t sizSectorSize, size_t sizNumSectors, size_t sizTotalSize, size_t sizOffset){
-	int iResult;
-	m_fReady = false;
-	m_ptRamDiskPartition = NULL;
-	m_pvDiskMem = NULL;
-	m_sizDiskMemSize = 0;
+void fatfs::setHandlers(FN_FATFS_ERROR_HANDLER pfnErrorHandler, FN_FATFS_VPRINTF pfn_vprintf, void* pvUser){
+	m_pfnErrorHandler = pfnErrorHandler;
+	m_pfnvprintf = pfn_vprintf;
+	m_pvUser = pvUser;
+}
 
+void fatfs::error(void *pvUser, const char* strFmt, ...){
+	va_list argp;	
+	va_start(argp, strFmt);
+	vprintf(strFmt, argp);
+	printf("\n");
+	va_end(argp);
+}
+
+void fatfs::printMessage(void *pvUser, const char* strFmt, ...){
+	va_list argp;	
+	va_start(argp, strFmt);
+	vprintf(strFmt, argp);
+	printf("\n");
+	va_end(argp);
+}
+
+bool fatfs::create(size_t sizSectorSize, size_t sizNumSectors, size_t sizTotalSize, size_t sizOffset){
+	int iResult;
 	if (sizTotalSize == 0) sizTotalSize = sizSectorSize * sizNumSectors;
 
 	if (sizOffset > sizTotalSize  ||
 		sizSectorSize * sizNumSectors > sizTotalSize||
 		sizOffset + sizSectorSize * sizNumSectors > sizTotalSize ) {
-		ERRORMESSAGE("fatfs create: Illegal size/offset parameters");
-		return;
+		FAILHARD("fatfs create: Illegal size/offset parameters");
+		return false;
 	}
 
 	m_pvDiskMem = malloc(sizTotalSize);
 	if (m_pvDiskMem == NULL){
-		ERRORMESSAGE("fatfs create: Could not allocate memory for image");
-		return;
+		FAILHARD("fatfs create: Could not allocate memory for image");
+		return false;
 	}
 	//MESSAGE("malloc 0x%08p", m_pvDiskMem);
 	m_sizDiskMemSize = sizTotalSize;
@@ -75,95 +86,50 @@ fatfs::fatfs(size_t sizSectorSize, size_t sizNumSectors, size_t sizTotalSize, si
 	/* format and mount file system */
 	iResult = formatFat(&m_tIoIfRamdisk); 
 	if (iResult==0){
-		ERRORMESSAGE("fatfs create: formatFat failed");
+		free (m_pvDiskMem); m_pvDiskMem = NULL;
+		FAILHARD("fatfs create: formatFat failed");
+		return false;
 	}
 
 	/* format successful, try to mount the new image */
 	m_ptRamDiskPartition = _FAT_partition_mountCustomInterface(&m_tIoIfRamdisk, 0);
 	if (m_ptRamDiskPartition == NULL){
-		ERRORMESSAGE("fatfs create: Could not mount partition");
+		free (m_pvDiskMem); m_pvDiskMem = NULL;
+		FAILHARD("fatfs create: Could not mount partition");
+		return false;
 	} else {
 		MESSAGE("Partition created. %d sectors  %d bytes/sector  offset: 0x%x  image size: 0x%x",
 			sizNumSectors, sizSectorSize, sizOffset, sizTotalSize);
 		m_fReady = true;
-	}
-
-}
-
-// not used
-fatfs::fatfs(const char* pabData, size_t sizDataLen, size_t sizSectorSize, size_t sizOffset, size_t sizNumSectors){
-	m_fReady = false;
-	m_ptRamDiskPartition = NULL;
-	m_pvDiskMem = NULL;
-	m_sizDiskMemSize = 0;
-	m_pvDiskMem = malloc(sizDataLen);
-	if (m_pvDiskMem == NULL){
-		ERRORMESSAGE("fatfs ctor: Could not allocate memory for image");
-		return;
-	}
-
-	if (sizNumSectors==0) {
-		sizNumSectors = sizDataLen/sizSectorSize;
-		if (sizNumSectors * sizSectorSize != sizDataLen) {
-			ERRORMESSAGE("fatfs ctor: Image size is not a multiple of sector size");
-			return;
-		}
-	}
-
-	if (sizDataLen < sizOffset ||
-		sizDataLen < sizSectorSize * sizNumSectors ||
-		sizSectorSize * sizNumSectors < sizOffset ) {
-		ERRORMESSAGE("fatfs ctor: Illegal size/offset parameters");
-		return;
-	}
-
-	m_sizDiskMemSize = sizDataLen;
-
-	memcpy(m_pvDiskMem, pabData, sizDataLen);
-
-	/* set the ramdisk IO interface */
-	m_tIoIfRamdisk = g_tIoIfRamDisk;
-	m_tIoIfRamdisk.ulBlockSize        = (unsigned long) sizSectorSize;
-	m_tIoIfRamdisk.pvUser             = (void*)((char*)m_pvDiskMem + sizOffset);
-	m_tIoIfRamdisk.ulStartOffset      = 0;
-	m_tIoIfRamdisk.ulDiskSize         = (unsigned long) (sizSectorSize * sizNumSectors);
-	
-	_FAT_disc_startup(&m_tIoIfRamdisk); // does nothing
-
-	/* try to mount the new image */
-	m_ptRamDiskPartition = _FAT_partition_mountCustomInterface(&m_tIoIfRamdisk, 0);
-	if (m_ptRamDiskPartition == NULL){
-		ERRORMESSAGE("fatfs ctor: Could not mount partition");
-	} else {
-		MESSAGE("Partition mounted. %d sectors  %d bytes/sector  offset: 0x%x  image size: 0x%x",
-			sizNumSectors, sizSectorSize, sizOffset, sizDataLen);
-		m_fReady = true;
+		return true;
 	}
 }
 
-fatfs::fatfs(const char* pabData, size_t sizDataLen, size_t sizOffset){
+
+
+bool fatfs::mount(const char* pabData, size_t sizTotalSize, size_t sizOffset){
 	size_t sizSectorSize;
 	size_t sizNumSectors;
 
-	m_fReady = false;
-	m_ptRamDiskPartition = NULL;
-	m_sizDiskMemSize = 0;
-	m_pvDiskMem = NULL;
+	if (sizOffset > sizTotalSize){
+		FAILHARD("fatfs mount: Illegal offset>size");
+		return false;
+	}
 
 	//bool _FAT_partition_recognize ( void* pvImage, size_t sizImage, size_t sizPartitionOffset, 
 	//								size_t *psizBytesPerSector, size_t *psizNumberOfSectors);
-	if (!_FAT_partition_recognize((void*) pabData, sizDataLen, sizOffset, &sizSectorSize, &sizNumSectors)) {
-		ERRORMESSAGE("fatfs mount: FAT boot sector not found or invalid");
-		return;
+	if (!_FAT_partition_recognize((void*) pabData, sizTotalSize, sizOffset, &sizSectorSize, &sizNumSectors)) {
+		FAILSOFT("fatfs mount: FAT boot sector not found or invalid");
+		return false;
 	}
 
-	m_pvDiskMem = malloc(sizDataLen);
+	m_pvDiskMem = malloc(sizTotalSize);
 	if (m_pvDiskMem == NULL){
-		ERRORMESSAGE("fatfs mount: Could not allocate memory for image");
-		return;
+		FAILHARD("fatfs mount: Could not allocate memory for image");
+		return false;
 	}
-	m_sizDiskMemSize = sizDataLen;
-	memcpy(m_pvDiskMem, pabData, sizDataLen);
+	m_sizDiskMemSize = sizTotalSize;
+	memcpy(m_pvDiskMem, pabData, sizTotalSize);
 
 	/* set the ramdisk IO interface */
 	m_tIoIfRamdisk = g_tIoIfRamDisk;
@@ -177,11 +143,14 @@ fatfs::fatfs(const char* pabData, size_t sizDataLen, size_t sizOffset){
 	/* try to mount the new image */
 	m_ptRamDiskPartition = _FAT_partition_mountCustomInterface(&m_tIoIfRamdisk, 0);
 	if (m_ptRamDiskPartition == NULL){
-		ERRORMESSAGE("fatfs mount: Could not mount partition");
+		free (m_pvDiskMem); m_pvDiskMem = NULL;
+		FAILSOFT("fatfs mount: Could not mount partition");
+		return false;
 	} else {
 		MESSAGE("Partition mounted. %d sectors  %d bytes/sector  offset: 0x%x  image size: 0x%x",
-			sizNumSectors, sizSectorSize, sizOffset, sizDataLen);
+			sizNumSectors, sizSectorSize, sizOffset, sizTotalSize);
 		m_fReady = true;
+		return true;
 	}
 }
 
@@ -190,7 +159,7 @@ void fatfs::destroy(void){
 	if (m_ptRamDiskPartition!= NULL) {
 		bool fOk = _FAT_partition_unmount(m_ptRamDiskPartition);
 		if (!fOk) {
-			ERRORMESSAGE("fatfs dtor: Partition could not be properly unmounted, there are open files!");
+			FAILHARD("fatfs dtor: Partition could not be properly unmounted, there are open files!"); //Todo: message?
 			_FAT_partition_unsafeUnmount(m_ptRamDiskPartition);
 		}
 		m_ptRamDiskPartition = NULL;
@@ -212,7 +181,7 @@ fatfs::~fatfs(void){
 
 bool fatfs::checkReady() {
 	if (m_fReady==false) {
-		ERRORMESSAGE("fatfs instance is not ready");
+		FAILHARD("fatfs instance is not ready");
 	}
 	return m_fReady;
 }	
@@ -225,9 +194,13 @@ char* fatfs::getimage(unsigned long *pulSize){
 
 bool fatfs::writeraw(const char* pabData, size_t sizFileLen, size_t sizOffset){
 	if (!checkReady()) return false;
-	if (pabData==NULL) return false;
+	if (pabData==NULL) {
+		FAILHARD("writeraw: data is nil");		
+		return false;
+	}
+
 	if (sizOffset + sizFileLen > m_sizDiskMemSize) {
-		ERRORMESSAGE("writeraw: offset/length exceed disk size");
+		FAILHARD("writeraw: offset/length exceed disk size");
 		return false;
 	}
 
@@ -239,7 +212,7 @@ bool fatfs::writeraw(const char* pabData, size_t sizFileLen, size_t sizOffset){
 char* fatfs::readraw(size_t sizOffset, size_t sizLen){
 	if (!checkReady()) return NULL;
 	if (sizOffset + sizLen > m_sizDiskMemSize) {
-		ERRORMESSAGE("readraw: offset/length exceed disk size");
+		FAILHARD("readraw: offset/length exceed disk size");
 		return NULL;
 	}
 	
@@ -255,7 +228,7 @@ bool fatfs::mkdir(char* pszPath){
 		MESSAGE("Created directory %s", pszPath);
 		return true;
 	} else {
-		ERRORMESSAGE("Could not create directory %s", pszPath);
+		FAILHARD("Could not create directory %s", pszPath);
 		return false;
 	}	
 }
@@ -265,97 +238,9 @@ bool fatfs::cd(char* pszPath){
 	if (!checkReady()) return false;
 	fOk = _FAT_directory_chdir(m_ptRamDiskPartition, pszPath);
 	if (!fOk) {
-		ERRORMESSAGE("Could not chdir to directory %s", pszPath);
+		FAILHARD("Could not chdir to %s", pszPath); //todo: Message?
 	}
 	return fOk;
-}
-
-// bool _FAT_directory_entryFromPath (PARTITION* partition, DIR_ENTRY* entry, const char* path, const char* pathEnd);
-
-bool fatfs::dir(char* pszPath, bool fRecursive){
-	bool fOk;
-	int iResult;
-	u32 oldcwd, cwd;
-	DIR_ENTRY tDirEntry;
-	FILE_STRUCT tFile;
-	if (!checkReady()) return false;
-
-	if (pszPath != NULL) {
-
-		MESSAGE("Directory '%s'", pszPath);
-		oldcwd = m_ptRamDiskPartition->cwdCluster;
-
-		if (pszPath!=NULL) {
-			fOk = _FAT_directory_chdir(m_ptRamDiskPartition, pszPath);
-			if (!fOk) {
-				ERRORMESSAGE("Path not found");
-				return false;
-			}
-		}
-
-		cwd = m_ptRamDiskPartition->cwdCluster;
-
-		/* 1 list subdirs */
-		fOk = _FAT_directory_getFirstEntry (m_ptRamDiskPartition, 
-	                                                &tDirEntry, 
-		                                            cwd);
-		if (!fOk) {
-			ERRORMESSAGE("_FAT_directory_getFirstEntry failed");
-			return false;
-		}
-
-		do {
-			if (_FAT_directory_isDirectory(&tDirEntry)) {
-				MESSAGE("  DIR         %-15s", tDirEntry.filename);
-			}         //123456789012
-		} while (_FAT_directory_getNextEntry (m_ptRamDiskPartition, &tDirEntry));
-
-		/* 2 list the files */
-		fOk = _FAT_directory_getFirstEntry (m_ptRamDiskPartition, 
-	                                                &tDirEntry, 
-		                                            cwd);
-		if (!fOk) {
-			ERRORMESSAGE("_FAT_directory_getFirstEntry failed");
-			return false;
-		}
-
-		do {
-			if (!_FAT_directory_isDirectory(&tDirEntry)) {
-	
-				int FileOpenForRead(PARTITION *ptPartition, const char *szFile, FILE_STRUCT *ptFile);
-				iResult = FileOpenForRead(m_ptRamDiskPartition, tDirEntry.filename, &tFile);
-				if (iResult == 1){
-					MESSAGE("  %-10d  %-15s", tFile.ulFilesize, tDirEntry.filename);
-					FileClose(&tFile);
-				} else {
-					MESSAGE("              %-15s Failed to open", tDirEntry.filename);
-				}
-			}
-		} while (_FAT_directory_getNextEntry (m_ptRamDiskPartition, &tDirEntry));
-
-		/* 3 recurse into subdirs */
-		if (fRecursive) {
-
-			fOk = _FAT_directory_getFirstEntry (m_ptRamDiskPartition, 
-	                                                &tDirEntry, 
-		                                            cwd);
-
-			if (!fOk) {
-			ERRORMESSAGE("_FAT_directory_getFirstEntry failed");
-				return false;
-			}
-
-			do {
-				if (_FAT_directory_isDirectory(&tDirEntry) && !_FAT_directory_isDot(&tDirEntry)) {
-					dir(tDirEntry.filename, fRecursive);
-				}
-			} while (_FAT_directory_getNextEntry (m_ptRamDiskPartition, &tDirEntry));
-
-		}
-		m_ptRamDiskPartition->cwdCluster = oldcwd;
-		
-	}
-	return true;
 }
 
 bool fatfs::writefile(const char *pcData, size_t sizData, char* pszPath){
@@ -364,29 +249,30 @@ bool fatfs::writefile(const char *pcData, size_t sizData, char* pszPath){
 
 	if (!checkReady()) return false;
 	iResult = FileCreate(m_ptRamDiskPartition, pszPath, &tFile);
-
 	if (iResult==0) {
-		ERRORMESSAGE("writefile %s: FileCreate failed", pszPath);
+		FAILHARD("writefile %s: FileCreate failed", pszPath);
 		return false;
 	}
 
 	size_t sizBytesWritten = FileWrite(&tFile, pcData, (unsigned long) sizData);
 	if (sizBytesWritten != sizData) {
-		ERRORMESSAGE("writefile %s: FileWrite failed", pszPath);
 		FileClose(&tFile);
 		deletefile(pszPath);
+		FAILHARD("writefile %s: FileWrite failed", pszPath);
 		return false;
 	}
 
 	iResult = FileClose(&tFile);
 	if (iResult==0) {
-		ERRORMESSAGE("writefile %s: FileClose failed", pszPath);
+		FAILHARD("writefile %s: FileClose failed", pszPath);
 		return false;
 	} else {
 		MESSAGE("File %s written", pszPath);
 		return true;
 	}
 }
+
+
 
 // int FileOpenForRead(PARTITION *ptPartition, const char *szFile, FILE_STRUCT *ptFile)
 // int FileRead(FILE_STRUCT* ptFile, void* pvData, unsigned long ulDataLen);
@@ -399,21 +285,21 @@ char* fatfs::readfile(char* pszPath, size_t *psizLen){
 	if (!checkReady()) return NULL;
 	iResult = FileOpenForRead(m_ptRamDiskPartition, pszPath, &tFile);
 	if (iResult == 0){
-		ERRORMESSAGE("readfile %s: FileOpenForRead failed ", pszPath);
+		FAILHARD("readfile %s: FileOpenForRead failed ", pszPath); // todo: Message?
 		return NULL;
 	}
 
 	ulLen = tFile.ulFilesize;
 	pabData = malloc(tFile.ulFilesize);
 	if (pabData == NULL){
-		ERRORMESSAGE("readfile %s: Could not allocate memory for file contents", pszPath);
 		FileClose(&tFile);
+		FAILHARD("readfile %s: Could not allocate memory for file contents", pszPath);
 		return NULL;
 	}
 
 	iResult = FileRead(&tFile, pabData, tFile.ulFilesize);
 	if (iResult != tFile.ulFilesize) {
-		ERRORMESSAGE("readfile %s: FileRead returned an error", pszPath);
+		FAILHARD("readfile %s: FileRead returned an error", pszPath);
 		free(pabData);
 		FileClose(&tFile);
 		return NULL;
@@ -433,7 +319,7 @@ bool fatfs::deletefile(char* pszPath){
 	iResult = FileDelete(m_ptRamDiskPartition, pszPath);
 
 	if (iResult==0) {
-		ERRORMESSAGE("Could not delete file %s", pszPath);
+		FAILHARD("Could not delete file %s", pszPath); // Todo: Message?
 		return false;
 	} else {
 		MESSAGE("File %s deleted", pszPath);
@@ -450,6 +336,130 @@ bool fatfs::fileexists(char* pszPath){
 	return iResult==1;
 }
 
+fatfs::Filetypes fatfs::gettype(char* pszPath) {
+	DIR_ENTRY     tDirEntry;
+	int           iResult;
+	if (!checkReady()) return TYPE_NONE;
+
+	iResult = _FAT_directory_entryFromPath(m_ptRamDiskPartition, &tDirEntry, pszPath, NULL);
+	if ( !iResult ){
+		return TYPE_NONE;
+	} else if (_FAT_directory_isDirectory(&tDirEntry)) {
+		return TYPE_DIRECTORY;
+	} else {
+		return TYPE_FILE;
+	}
+}
 
 
+bool fatfs::isdir(char* pszPath) {
+	return TYPE_DIRECTORY==gettype(pszPath);
+}
 
+bool fatfs::isfile(char* pszPath) {
+	return TYPE_FILE==gettype(pszPath);
+}
+
+
+long fatfs::getfilesize(char* pszPath) {
+	DIR_ENTRY tDirEntry;
+
+	if (!checkReady()) return -1;
+	if (!_FAT_directory_entryFromPath(m_ptRamDiskPartition, &tDirEntry, pszPath, NULL)){
+		MESSAGE("getfilesize %s: not found ", pszPath);
+		return -1;
+	}
+	if (_FAT_directory_isDirectory(&tDirEntry)) {
+		MESSAGE("getfilesize %s: is a directory ", pszPath);
+		return -1;
+	}
+	return (long) getfilesize(&tDirEntry);
+}
+
+
+unsigned long fatfs::getfilesize(DIR_ENTRY *ptDirEntry) {
+	return u8array_to_u32(ptDirEntry->entryData, DIR_ENTRY_fileSize);
+}
+
+
+bool fatfs::get_dir_start_cluster(char* pszPath, u32 *pulClusterNo){
+	DIR_ENTRY tDirEntry;
+
+	if (_FAT_directory_entryFromPath(m_ptRamDiskPartition, &tDirEntry, pszPath, NULL) &&
+		_FAT_directory_isDirectory(&tDirEntry)) {
+		*pulClusterNo =  _FAT_directory_entryGetCluster (tDirEntry.entryData);;
+		return true;
+	} else {
+		MESSAGE("directory %s does not exist", pszPath);
+		return false;
+	}
+}
+
+bool fatfs::getfirstdirentry(DIR_ENTRY *ptDirEntry, unsigned long ulDirCluster) {
+	return _FAT_directory_getFirstEntry (m_ptRamDiskPartition, ptDirEntry, ulDirCluster);
+}
+
+bool fatfs::getnextdirentry(DIR_ENTRY *ptDirEntry) {
+	return _FAT_directory_getNextEntry (m_ptRamDiskPartition, ptDirEntry);
+}
+
+
+bool fatfs::dir(char* pszPath, u32 dircluster, bool fRecursive){
+	DIR_ENTRY tDirEntry;
+
+	MESSAGE("Directory '%s'", pszPath);
+
+	/* 1 list subdirs */
+	if (!getfirstdirentry(&tDirEntry, dircluster)){
+		FAILHARD("_FAT_directory_getFirstEntry failed");
+		return false;
+	}
+	do {
+		if (_FAT_directory_isDirectory(&tDirEntry)) {
+			MESSAGE("  DIR         %-15s", tDirEntry.filename);
+		}
+	} while (getnextdirentry(&tDirEntry));
+
+	/* 2 list the files */
+	if (!getfirstdirentry(&tDirEntry, dircluster)){
+		FAILHARD("_FAT_directory_getFirstEntry failed");
+		return false;
+	}
+	do {
+		if (!_FAT_directory_isDirectory(&tDirEntry)) {
+			MESSAGE("  %-10d  %-15s", getfilesize(&tDirEntry), tDirEntry.filename);
+		}
+	} while (getnextdirentry(&tDirEntry));
+
+	/* 3 recurse into subdirs */
+	if (fRecursive) {
+		if (!getfirstdirentry(&tDirEntry, dircluster)){
+			FAILHARD("_FAT_directory_getFirstEntry failed");
+			return false;
+		}
+		do {
+			if (_FAT_directory_isDirectory(&tDirEntry) && !_FAT_directory_isDot(&tDirEntry)) {
+				if (!dir(tDirEntry.filename, 
+						_FAT_directory_entryGetCluster (tDirEntry.entryData),
+						fRecursive)) 
+				{
+					return false;
+				}
+			}
+		} while (getnextdirentry(&tDirEntry));
+	}
+	return true;
+}
+
+bool fatfs::dir(char* pszPath, bool fRecursive){
+	u32 ulDirCluster;
+	if (!checkReady()) return false;
+	if (pszPath == NULL) {
+		return false;
+	}
+	if (get_dir_start_cluster(pszPath, &ulDirCluster)){
+		return dir(pszPath, ulDirCluster, fRecursive);
+	} else {
+		return false;
+	}
+}

@@ -44,7 +44,8 @@
 #define LFN_ENTRY_LENGTH 13
 #define FAT16_ROOT_DIR_CLUSTER 0
 
-#define DIR_SEPARATOR '\\'
+//#define DIR_SEPARATOR '\\'
+#define DIR_SEPARATOR '/'
 
 // File attributes
 #define ATTRIB_ARCH	0x20			// Archive

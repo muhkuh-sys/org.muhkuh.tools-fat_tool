@@ -103,13 +103,13 @@ void print_usage(){
 		"-dir [path] [-r]            list directory\n"    
 		"-cd path                    set current directory\n"
 		"\n"
-		"-write file destfile        copy file into file system\n"
-		"-read file destfile         read file from file system\n"
+		"-writefile file destfile    copy file into file system\n"
+		"-readfile file destfile     read file from file system\n"
 		"-exists file                check if file exists\n"
 		"-delete file                delete file\n" //del
 		"\n"
 		"The first command must be create or mount.\n"
-		"File names may include a path. Path separatator is \\.\n"
+		"File names may include a path. Path separatator is /.\n"
 
 		);
 }
@@ -167,8 +167,8 @@ int execute_commands(int argcnt, char** argv){
 			}
 			
 			if (pFS!= NULL) delete pFS;
-			pFS = new fatfs(sizSectorSize, sizNumBlocks, sizImageSize, sizOffset);
-			if (pFS != NULL && !pFS->checkReady()) {
+			pFS = new fatfs();
+			if (pFS != NULL && !pFS->create(sizSectorSize, sizNumBlocks, sizImageSize, sizOffset)) {
 				delete(pFS);
 				pFS = NULL;
 				return 1;
@@ -196,13 +196,14 @@ int execute_commands(int argcnt, char** argv){
 				return 1;
 			} else {
 				if (pFS!= NULL) delete pFS;
-				pFS = new fatfs(pabBuffer, lFileSize, sizOffset);
-				free(pabBuffer);
-				if (pFS != NULL && !pFS->checkReady()) {
+				pFS = new fatfs();
+				if (pFS != NULL && !pFS->mount(pabBuffer, lFileSize, sizOffset)) {
+					free(pabBuffer);
 					delete(pFS);
 					pFS = NULL;
 					return 1;
 				}
+				free(pabBuffer);
 			}
 		}
 
@@ -285,7 +286,7 @@ int execute_commands(int argcnt, char** argv){
 				iArg ++;
 				iRemArgs --;
 			} else {
-				pszFilename = "\\";
+				pszFilename = "/"; //"\\";
 			}
 
 			if (iRemArgs >= 1 && 0==strcmp("-r", argv[iArg+1])) {
@@ -302,8 +303,8 @@ int execute_commands(int argcnt, char** argv){
 		}
 
 
-		/* -write filename destfilename */
-		else if(strcmp("-write", argv[iArg])==0 && iRemArgs>=2)
+		/* -writefile filename destfilename */
+		else if(strcmp("-writefile", argv[iArg])==0 && iRemArgs>=2)
 		{
 			pszFilename = argv[iArg+1];
 			pszDestname = argv[iArg+2];
@@ -316,8 +317,8 @@ int execute_commands(int argcnt, char** argv){
 			if (!fOk) return 1;		
 		}
 
-		/* -read filename destfilename */
-		else if(strcmp("-read", argv[iArg])==0 && iRemArgs>=2)
+		/* -readfile filename destfilename */
+		else if(strcmp("-readfile", argv[iArg])==0 && iRemArgs>=2)
 		{
 			pszFilename = argv[iArg+1];
 			pszDestname = argv[iArg+2];

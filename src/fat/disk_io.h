@@ -11,12 +11,12 @@
 
 struct IO_INTERFACE_STRUCT;
 
-typedef int (* FN_MEDIUM_STARTUP)(const struct IO_INTERFACE_STRUCT* ptData);
-typedef int (* FN_MEDIUM_ISINSERTED)(const struct IO_INTERFACE_STRUCT* ptData);
-typedef int (* FN_MEDIUM_READSECTORS)(const struct IO_INTERFACE_STRUCT* ptData, unsigned long sector, unsigned long numSectors, void* buffer);
-typedef int (* FN_MEDIUM_WRITESECTORS)(const struct IO_INTERFACE_STRUCT* ptData, unsigned long sector, unsigned long numSectors, const void* buffer);
-typedef int (* FN_MEDIUM_CLEARSTATUS)(const struct IO_INTERFACE_STRUCT* ptData);
-typedef int (* FN_MEDIUM_SHUTDOWN)(const struct IO_INTERFACE_STRUCT* ptData);
+typedef int (* FN_MEDIUM_STARTUP)(const struct IO_INTERFACE_STRUCT* ptIO);
+typedef int (* FN_MEDIUM_ISINSERTED)(const struct IO_INTERFACE_STRUCT* ptIO);
+typedef int (* FN_MEDIUM_READSECTORS)(const struct IO_INTERFACE_STRUCT* ptIO, unsigned long sector, unsigned long numSectors, void* buffer);
+typedef int (* FN_MEDIUM_WRITESECTORS)(const struct IO_INTERFACE_STRUCT* ptIO, unsigned long sector, unsigned long numSectors, const void* buffer);
+typedef int (* FN_MEDIUM_CLEARSTATUS)(const struct IO_INTERFACE_STRUCT* ptIO);
+typedef int (* FN_MEDIUM_SHUTDOWN)(const struct IO_INTERFACE_STRUCT* ptIO);
 
 struct IO_INTERFACE_STRUCT {
   unsigned long           ioType ;

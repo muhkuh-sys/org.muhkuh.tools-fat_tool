@@ -6,12 +6,12 @@
 #include "fat/disk_io.h"
 
 
-static int drv_ramdisk_readSectors (const struct IO_INTERFACE_STRUCT* ptData, unsigned long sector, unsigned long numSectors, void* buffer); 
-static int drv_ramdisk_writeSectors (const struct IO_INTERFACE_STRUCT* ptData, unsigned long sector, unsigned long numSectors, const void* buffer); 
-static int drv_ramdisk_startup (const struct IO_INTERFACE_STRUCT* ptData); 
-static int drv_ramdisk_isInserted (const struct IO_INTERFACE_STRUCT* ptData); 
-static int drv_ramdisk_clearStatus (const struct IO_INTERFACE_STRUCT* ptData); 
-static int drv_ramdisk_shutdown (const struct IO_INTERFACE_STRUCT* ptData); 
+static int drv_ramdisk_readSectors (const struct IO_INTERFACE_STRUCT* ptIO, unsigned long sector, unsigned long numSectors, void* buffer); 
+static int drv_ramdisk_writeSectors (const struct IO_INTERFACE_STRUCT* ptIO, unsigned long sector, unsigned long numSectors, const void* buffer); 
+static int drv_ramdisk_startup (const struct IO_INTERFACE_STRUCT* ptIO); 
+static int drv_ramdisk_isInserted (const struct IO_INTERFACE_STRUCT* ptIO); 
+static int drv_ramdisk_clearStatus (const struct IO_INTERFACE_STRUCT* ptIO); 
+static int drv_ramdisk_shutdown (const struct IO_INTERFACE_STRUCT* ptIO); 
 
 #ifdef __GNUC__
 IO_INTERFACE g_tIoIfRamDisk =
@@ -53,18 +53,18 @@ numSectors is between 1 and 256
 sector is from 0 to 2^28
 buffer is a pointer to the memory to fill
 */
-int drv_ramdisk_readSectors(const struct IO_INTERFACE_STRUCT* ptData, unsigned long sector, unsigned long numSectors, void* buffer) 
+int drv_ramdisk_readSectors(const struct IO_INTERFACE_STRUCT* ptIO, unsigned long sector, unsigned long numSectors, void* buffer) 
 {
-  unsigned char *pbData;
-  unsigned long ulSectorSize = ptData->ulBlockSize;
+  unsigned long ulSectorSize = ptIO->ulBlockSize;
+  unsigned long ulDiskSize = ptIO->ulDiskSize;
+  unsigned char *pbData = (unsigned char*)ptIO->pvUser;
 
-
-  /* cast void pointer to something with a size */ 
-  pbData = (unsigned char*)ptData->pvUser;
-
-  memcpy(buffer, pbData + sector * ulSectorSize, numSectors * ulSectorSize);
-
-  return 1;
+  if (sector * ulSectorSize < ulDiskSize && (sector + numSectors) * ulSectorSize < ulDiskSize){
+	memcpy(buffer, pbData + sector * ulSectorSize, numSectors * ulSectorSize);
+	return 1;
+  } else {
+	return 0;
+  }
 }
 
 /*
@@ -73,39 +73,40 @@ numSectors is between 1 and 256
 sector is from 0 to 2^28
 buffer is a pointer to the memory to read from
 */
-int drv_ramdisk_writeSectors(const struct IO_INTERFACE_STRUCT* ptData, unsigned long sector, unsigned long numSectors, const void* buffer) 
+int drv_ramdisk_writeSectors(const struct IO_INTERFACE_STRUCT* ptIO, unsigned long sector, unsigned long numSectors, const void* buffer) 
 {
-  unsigned char *pbData;
-  unsigned long ulSectorSize = ptData->ulBlockSize;
+  unsigned long ulSectorSize = ptIO->ulBlockSize;
+  unsigned long ulDiskSize = ptIO->ulDiskSize;
+  unsigned char *pbData = (unsigned char*)ptIO->pvUser;
 
-  /* cast void pointer to something with a size */ 
-  pbData = (unsigned char*)ptData->pvUser;
-
-  memcpy(pbData + sector * ulSectorSize, buffer, numSectors * ulSectorSize);
-
-  return 1;
+  if (sector * ulSectorSize < ulDiskSize && (sector + numSectors) * ulSectorSize < ulDiskSize){
+	memcpy(pbData + sector * ulSectorSize, buffer, numSectors * ulSectorSize);
+	return 1;
+  }else {
+	return 0;
+  }
 }
 
 /*
 Initialise the disc to a state ready for data reading or writing
 */
-int drv_ramdisk_startup (const struct IO_INTERFACE_STRUCT* ptData) 
+int drv_ramdisk_startup (const struct IO_INTERFACE_STRUCT* ptIO) 
 {
-  UNREFERENCED_PARAMETER(ptData);
+  UNREFERENCED_PARAMETER(ptIO);
 
   return 1; 
 }
 
-int drv_ramdisk_isInserted (const struct IO_INTERFACE_STRUCT* ptData) 
+int drv_ramdisk_isInserted (const struct IO_INTERFACE_STRUCT* ptIO) 
 {
-  UNREFERENCED_PARAMETER(ptData);
+  UNREFERENCED_PARAMETER(ptIO);
 
   return 1;
 }
 
-int drv_ramdisk_clearStatus (const struct IO_INTERFACE_STRUCT* ptData) 
+int drv_ramdisk_clearStatus (const struct IO_INTERFACE_STRUCT* ptIO) 
 {
-  UNREFERENCED_PARAMETER(ptData);
+  UNREFERENCED_PARAMETER(ptIO);
 
   return 1;
 }
@@ -114,9 +115,9 @@ int drv_ramdisk_clearStatus (const struct IO_INTERFACE_STRUCT* ptData)
 Put the disc in a state ready for power down.
 Complete any pending writes and disable the disc if necessary
 */
-int drv_ramdisk_shutdown (const struct IO_INTERFACE_STRUCT* ptData) 
+int drv_ramdisk_shutdown (const struct IO_INTERFACE_STRUCT* ptIO) 
 {
-  UNREFERENCED_PARAMETER(ptData);
+  UNREFERENCED_PARAMETER(ptIO);
 
   return 1;
 }

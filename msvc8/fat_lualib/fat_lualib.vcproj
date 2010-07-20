@@ -41,7 +41,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="&quot;$(WXWIN)\include&quot;;&quot;$(WXLUA)\modules\lua\include&quot;;D:\projekt\bsl_libfat\src;D:\projekt\bsl_libfat\src\ramdisk;D:\projekt\bsl_libfat\src\fat"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;USE_WXLOG"
+				PreprocessorDefinitions="WIN32;_CRT_SECURE_NO_DEPRECATE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -121,7 +121,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="&quot;$(WXWIN)\include&quot;;&quot;$(WXLUA)\modules\lua\include&quot;;D:\projekt\bsl_libfat\src;D:\projekt\bsl_libfat\src\ramdisk;D:\projekt\bsl_libfat\src\fat"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;USE_WXLOG"
+				PreprocessorDefinitions="WIN32;_CRT_SECURE_NO_DEPRECATE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"

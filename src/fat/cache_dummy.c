@@ -18,6 +18,20 @@ void _FAT_cache_destructor (CACHE* cache)
 {
 }
 
+
+bool _FAT_cache_checkBoundaries(CACHE* cache, const void* buffer, u32 sector, u32 offset, u32 size, u32 sectorsize){
+	u32 ulBlockSize = cache->disc->ulBlockSize;
+	u32 ulDiskSize = cache->disc->ulDiskSize;
+
+	if (sector*ulBlockSize + offset >ulDiskSize ||
+		sector*ulBlockSize + offset + size >ulDiskSize ||
+		ulBlockSize != sectorsize ||
+		offset + size > sectorsize) {
+		return false;
+	} else {
+		return true;
+	}
+}
 /*
 Reads some data from a cache page, determined by the sector number
   unsigned long           ulBlockSize;
@@ -31,14 +45,14 @@ bool _FAT_cache_readPartialSector (CACHE* cache, void* buffer, u32 sector, u32 o
 	char *pabBase = (char*) cache->disc->pvUser;
 	u32 ulBlockSize = cache->disc->ulBlockSize;
 
-	if (offset + size > sectorsize) {
+	if (_FAT_cache_checkBoundaries(cache, buffer, sector, offset, size, sectorsize)){
+		memcpy (buffer, pabBase + sector * ulBlockSize + offset, size);
+		return true;
+	} else {
 		return false;
 	}
-
-	memcpy (buffer, pabBase + sector * ulBlockSize + offset, size);
-
-	return true;
 }
+
 
 /* 
 Writes some data to a cache page, making sure it is loaded into memory first.
@@ -47,12 +61,12 @@ bool _FAT_cache_writePartialSector (CACHE* cache, const void* buffer, u32 sector
 	char *pabBase = (char*) cache->disc->pvUser;
 	u32 ulBlockSize = cache->disc->ulBlockSize;
 
-	if (offset + size > sectorsize) {
+	if (_FAT_cache_checkBoundaries(cache, buffer, sector, offset, size, sectorsize)){
+		memcpy (pabBase + sector * ulBlockSize + offset, buffer, size);
+		return true;
+	} else {
 		return false;
 	}
-		
-	memcpy (pabBase + sector * ulBlockSize + offset, buffer, size);
-	return true;
 }
 
 /* 
@@ -61,15 +75,13 @@ Writes some data to a cache page, zeroing out the page first
 bool _FAT_cache_eraseWritePartialSector (CACHE* cache, const void* buffer, u32 sector, u32 offset, u32 size, u32 sectorsize) {
 	char *pabBase = (char*) cache->disc->pvUser;
 	u32 ulBlockSize = cache->disc->ulBlockSize;
-
-	if (offset + size > sectorsize) {
+	if (_FAT_cache_checkBoundaries(cache, buffer, sector, offset, size, sectorsize)){
+		memset (pabBase + sector * ulBlockSize, 0, ulBlockSize);
+		memcpy (pabBase + sector * ulBlockSize + offset, buffer, size);
+		return true;
+	} else {
 		return false;
 	}
-
-	memset (pabBase + sector * ulBlockSize, 0, ulBlockSize);
-	memcpy (pabBase + sector * ulBlockSize + offset, buffer, size);
-
-	return true;
 }
 
 
