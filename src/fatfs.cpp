@@ -21,15 +21,11 @@
 
 
 fatfs::fatfs(){
-	//MESSAGE("Default constructor");
 	m_fReady = false;
 	m_ptRamDiskPartition = NULL;
 	m_pvDiskMem = NULL;
 	m_sizDiskMemSize = 0;
 	setHandlers(&fatfs::error, &fatfs::printMessage, NULL);
-/*	m_pfnErrorHandler = &fatfs::error;
-	m_pfnvprintf = &fatfs::printMessage;
-	m_pvUser = NULL;*/
 }
 
 void fatfs::setHandlers(FN_FATFS_ERROR_HANDLER pfnErrorHandler, FN_FATFS_VPRINTF pfn_vprintf, void* pvUser){
@@ -89,7 +85,7 @@ bool fatfs::create(size_t sizSectorSize, size_t sizNumSectors, size_t sizTotalSi
 	m_tIoIfRamdisk.pvUser             = (void*)((char*)m_pvDiskMem + sizOffset);
 	m_tIoIfRamdisk.ulStartOffset      = 0;
 	m_tIoIfRamdisk.ulDiskSize         = (unsigned long) (sizSectorSize * sizNumSectors);
-	setDiscIOErrorHandlers();
+	setDiscIOErrorHandlers(); // set error handlers (they were overwritten by the struct assignement)
 	_FAT_disc_startup(&m_tIoIfRamdisk); // does nothing
 
 	/* format and mount file system */
@@ -152,7 +148,7 @@ bool fatfs::mount(const char* pabData, size_t sizTotalSize, size_t sizOffset){
 	m_tIoIfRamdisk.pvUser             = (void*)((char*)m_pvDiskMem + sizOffset);
 	m_tIoIfRamdisk.ulStartOffset      = 0;
 	m_tIoIfRamdisk.ulDiskSize         = (unsigned long) (sizSectorSize * sizNumSectors);
-	setDiscIOErrorHandlers();
+	setDiscIOErrorHandlers();// set error handlers (they were overwritten by the struct assignement)
 	_FAT_disc_startup(&m_tIoIfRamdisk); // does nothing
 
 	/* try to mount the new image */
