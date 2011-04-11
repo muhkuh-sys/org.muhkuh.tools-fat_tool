@@ -17,6 +17,12 @@ typedef struct
 	size_t sizData;
 } tBinaryDataFree;
 
+
+/***************************************************************************
+	Error Handler
+	Format the error message and push the formatted string on the Lua stack
+	signal an error
+***************************************************************************/
 void fatfs_error_handler(void* pvUser, const char* strFormat, ...) {
 	va_list argp;	
 	char buf[1024];
@@ -36,6 +42,13 @@ void fatfs_error_handler(void* pvUser, const char* strFormat, ...) {
 	}	
 }
 
+
+/***************************************************************************
+	Print handler
+	Get the Lua print function. If available, 
+	format the message and push the formatted string on the Lua stack,
+	then call the print function
+***************************************************************************/
 void fatfs_snprintf(void* pvUser, const char* strFormat, ...) {
 	va_list argp;	
 	char buf[1024];
@@ -57,15 +70,21 @@ void fatfs_snprintf(void* pvUser, const char* strFormat, ...) {
 
 %}
 
-/* use $input instead of $argnum. $argnum leads to wrong index in mount function 
+/****************************************************************************
+	Convert an input parameter string
+	Use $input instead of $argnum. $argnum leads to wrong index in mount function 
 	$input            - Input object holding value to be converted.	
-*/
+****************************************************************************/
 %typemap(in, numinputs = 1) (const char *pcData, size_t sizData)
 %{
 	$1 = (char*)lua_tolstring(L, $input, &$2);
 	if ($1==NULL) SWIG_fail_arg("$symname", $argnum,"char *");
 %}
 
+/***************************************************************************
+	Return a memory block as a Lua string.
+	Creates a copy in Lua.
+***************************************************************************/
 %typemap(out) tBinaryData
 {
 	if ($1.pcData != NULL) {
@@ -74,6 +93,10 @@ void fatfs_snprintf(void* pvUser, const char* strFormat, ...) {
 	}
 }
 
+/***************************************************************************
+	Return a memory block as a string.
+	Creates copy in Lua and frees the original memory block.
+***************************************************************************/
 %typemap(out) tBinaryDataFree
 {
 	if ($1.pcData != NULL) {
@@ -83,6 +106,9 @@ void fatfs_snprintf(void* pvUser, const char* strFormat, ...) {
 	}
 }
 
+/***************************************************************************
+	Return a number
+***************************************************************************/
 %typemap(out) long
 %{
 	if ($1>=0) {
@@ -91,14 +117,17 @@ void fatfs_snprintf(void* pvUser, const char* strFormat, ...) {
 	}
 %}
 
-/* This typemap passes the Lua state to the function. This allows the function
- * to call functions of the Swig Runtime API and the Lua C API.
- */
+
+/****************************************************************************
+	This typemap passes the Lua state to the function. This allows the function
+	to call functions of the Swig Runtime API and the Lua C API.
+****************************************************************************/
  
 %typemap(in, numinputs = 0) lua_State *
 %{
 	$1 = L;
 %}
+
 
 %typemap(in, numinputs = 0) int *piNumResults
 %{
