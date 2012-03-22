@@ -1,4 +1,4 @@
-20.7.2010
+22.3.2012
 
 The fatfs package allows to
 - create a flash image containing a FAT filesystem
@@ -67,8 +67,10 @@ Available commands:
 -delete file                delete file
 
 The first command must be create or mount.
-File names may include a path. Path separatator is /.
-
+File names and paths on the file system side may be written in lower or 
+upper case. They are converted to upper case.
+File names may include a path. The path separator in the file system is /.
+On the Windows side, both \ and / are allowed.
 
 
 
