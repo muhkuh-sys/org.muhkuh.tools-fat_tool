@@ -1,16 +1,32 @@
 #ifndef __FATFS_H__
 #define __FATFS_H__
 
-#include "fat/partition.h"
-#include "fat/disk_io.h"
-#include "fat/directory.h"
+extern "C" {
+#       include "fat/partition.h"
+#       include "fat/disk_io.h"
+#       include "fat/directory.h"
+}
 
 #include <stdio.h>
 #include <stdarg.h>
-#define MESSAGE(strFormat, ...) m_pfnvprintf(m_pvUser, strFormat, __VA_ARGS__);
+
+/* GCC complains if you leave out the variable argument in a variadic macro completely.
+ * The token paste operator '##' prevents the error.
+ * See http://gcc.gnu.org/onlinedocs/gcc/Variadic-Macros.html for more details.
+ *
+ * MSC seems to be fine without.
+ */
+#if defined(_MSC_VER)
+#       define MESSAGE(strFormat, ...) m_pfnvprintf(m_pvUser, strFormat, __VA_ARGS__);
 //#define ERRORMESSAGE(strFormat, ...) m_pfnErrorHandler(m_pvUser, strFormat, __VA_ARGS__);
-#define FAILHARD(strFormat, ...) m_pfnErrorHandler(m_pvUser, strFormat, __VA_ARGS__);
-#define FAILSOFT(strFormat, ...) m_pfnvprintf(m_pvUser, strFormat, __VA_ARGS__);
+#       define FAILHARD(strFormat, ...) m_pfnErrorHandler(m_pvUser, strFormat, __VA_ARGS__);
+#       define FAILSOFT(strFormat, ...) m_pfnvprintf(m_pvUser, strFormat, __VA_ARGS__);
+#else
+#       define MESSAGE(strFormat, ...) m_pfnvprintf(m_pvUser, strFormat, ## __VA_ARGS__);
+#       define FAILHARD(strFormat, ...) m_pfnErrorHandler(m_pvUser, strFormat, ## __VA_ARGS__);
+#       define FAILSOFT(strFormat, ...) m_pfnvprintf(m_pvUser, strFormat, ## __VA_ARGS__);
+#endif
+
 
 typedef void (*FN_FATFS_ERROR_HANDLER)(void *pvUser, const char* strFormat, ...);
 typedef void (*FN_FATFS_VPRINTF)(void *pvUser, const char* strFormat, ...);

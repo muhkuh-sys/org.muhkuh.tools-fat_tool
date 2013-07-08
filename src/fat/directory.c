@@ -43,8 +43,10 @@
 */
 
 #include <string.h>
-int strncasecmp(const char* s1, const char* s2, size_t len) { return _strnicmp(s1, s2, len); }
-int strcasecmp(const char* s1, const char* s2) { return _stricmp(s1, s2); }
+#if defined(_MSC_VER)
+	int strncasecmp(const char* s1, const char* s2, size_t len) { return _strnicmp(s1, s2, len); }
+	int strcasecmp(const char* s1, const char* s2) { return _stricmp(s1, s2); }
+#endif
 
 #include <ctype.h>
 

@@ -2,14 +2,17 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
-#include "fat/bit_ops.h"
-#include "fat/common.h"
-#include "fat/cache.h"
-#include "fat/directory.h"
-#include "fat/file_allocation_table.h"
-#include "fat/format.h"
-#include "fat/file_functions.h"
-#include "ramdisk/interface.h"
+
+extern "C" {
+#       include "fat/bit_ops.h"
+#       include "fat/common.h"
+#       include "fat/cache.h"
+#       include "fat/directory.h"
+#       include "fat/file_allocation_table.h"
+#       include "fat/format.h"
+#       include "fat/file_functions.h"
+#       include "ramdisk/interface.h"
+}
 
 /*
 	bool					m_fReady;

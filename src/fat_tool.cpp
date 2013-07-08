@@ -286,7 +286,7 @@ int execute_commands(int argcnt, char** argv){
 				iArg ++;
 				iRemArgs --;
 			} else {
-				pszFilename = "/"; //"\\";
+				strcpy(pszFilename, "/"); //"\\";
 			}
 
 			if (iRemArgs >= 1 && 0==strcmp("-r", argv[iArg+1])) {

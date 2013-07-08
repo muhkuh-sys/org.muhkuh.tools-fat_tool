@@ -33,6 +33,8 @@
 #ifndef _PARTITION_H
 #define _PARTITION_H
 
+#include <stdlib.h>
+
 #include "fat/common.h"
 
 #include "fat/cache.h"
