@@ -28,11 +28,13 @@ set(SOURCES_libfat
 	src/fat/format.c
 	src/fat/partition.c
 	src/fat/wrapper.c
+	src/platform.c
 )
 
 add_library(TARGET_libfat STATIC ${SOURCES_libfat})
 
-target_include_directories(TARGET_libfat PUBLIC src)
+#target_include_directories(TARGET_libfat PUBLIC src)
+INCLUDE_DIRECTORIES(src)
 
 
 #----------------------------------------------------------------------------
@@ -46,7 +48,8 @@ set(SOURCES_libramdisk
 
 add_library(TARGET_libramdisk STATIC ${SOURCES_libramdisk})
 
-target_include_directories(TARGET_libramdisk PUBLIC src)
+#target_include_directories(TARGET_libramdisk PUBLIC src)
+INCLUDE_DIRECTORIES(src)
 
 
 #----------------------------------------------------------------------------
