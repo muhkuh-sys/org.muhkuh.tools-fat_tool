@@ -2,12 +2,6 @@ cmake_minimum_required (VERSION 2.8)
 
 project(fat_tool)
 
-IF(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-	# Build 32bit binaries.
-	set(CMAKE_C_FLAGS -m32)
-	set(CMAKE_CXX_FLAGS -m32)
-ENDIF(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-
 if(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 	# Do not show msvs security warnings about unsafe functions.
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
