@@ -1,10 +1,11 @@
+#include <errno.h>
+#include <stdio.h>
 
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
 #include "fat_tool.h"
 #include "fatfs.h"
-#include "io.h"
 
 /* read file to newly allocated buffer */
 char* readFile(char* pszFilename, long *plsize) {
@@ -12,28 +13,48 @@ char* readFile(char* pszFilename, long *plsize) {
 	FILE* fd;
 	size_t iBytesRead;
 	long lsize;
+	int iResult;
+	struct stat tStatBuf;
 
-	fd = fopen(pszFilename, "rb");
-	if (fd==NULL){
-		printf("Could not open file %s\n", pszFilename);
-	} else {
-		lsize = _filelength(_fileno(fd));
+	iResult = stat(pszFilename, &tStatBuf);
+	if( iResult!=0 )
+	{
+		printf("Failed to stat file %s: %s\n", pszFilename, strerror(errno));
+		pabBuffer = NULL;
+	}
+	else if( S_ISREG(tStatBuf.st_mode)==0 )
+	{
+		printf("The path %s does not point to a regular file!\n", pszFilename);
+		pabBuffer = NULL;
+	}
+	else
+	{
+		lsize = tStatBuf.st_size;
 
-		pabBuffer = (char*)malloc(lsize);
-		if (pabBuffer==NULL) {
-			printf("could not allocate buffer for file\n");
+		fd = fopen(pszFilename, "rb");
+		if (fd==NULL){
+			printf("Could not open file %s\n", pszFilename);
 		} else {
-			iBytesRead = fread(pabBuffer, 1, lsize, fd);
-			printf("File size: %d bytes, %d bytes read\n", lsize, iBytesRead);
+/*
+			lsize = _filelength(_fileno(fd));
+*/
 
-			if (iBytesRead != lsize) {
-				printf("error reading file\n");
-				free(pabBuffer);
-				pabBuffer = NULL;
+			pabBuffer = (char*)malloc(lsize);
+			if (pabBuffer==NULL) {
+				printf("could not allocate buffer for file\n");
+			} else {
+				iBytesRead = fread(pabBuffer, 1, lsize, fd);
+				printf("File size: %ld bytes, %d bytes read\n", lsize, iBytesRead);
+
+				if (iBytesRead != lsize) {
+					printf("error reading file\n");
+					free(pabBuffer);
+					pabBuffer = NULL;
+				}
 			}
+			*plsize = lsize;
+			fclose(fd);
 		}
-		*plsize = lsize;
-		fclose(fd);
 	}
 	return pabBuffer;
 }
@@ -63,9 +84,9 @@ int writeFile(char* pabBuffer, size_t sizBufferSize, char* pszFilename){
 	returns: 1=ok, 0=error
 */
 int readULArg(char* pszArg, unsigned long* pulVal){
-	if (1==sscanf(pszArg, "0x%x", pulVal)){
+	if (1==sscanf(pszArg, "0x%lx", pulVal)){
 		return 1;
-	} else if (1==sscanf(pszArg, "%d", pulVal)){
+	} else if (1==sscanf(pszArg, "%ld", pulVal)){
 		return 1;
 	} else {
 		printf("Can't parse %s as an integer\n", pszArg);
