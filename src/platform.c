@@ -1,6 +1,7 @@
 
 #include <string.h>
 
+#if CFG_HAVE_STRUPR==0
 void strupr(char *pszString)
 {
 	if( pszString!=NULL )
@@ -12,3 +13,5 @@ void strupr(char *pszString)
 		}
 	}
 }
+#endif
+
