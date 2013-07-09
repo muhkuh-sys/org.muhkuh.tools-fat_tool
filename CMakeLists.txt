@@ -8,12 +8,17 @@ if(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
 ENDIF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 
-try_compile(CFG_HAVE_STRUPR
-            ${CMAKE_CURRENT_BINARY_DIR}
-            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure_strupr.c
-            OUTPUT_VARIABLE LOG_HAVE_STRUPR)
-message(STATUS "CFG_HAVE_STRUPR: ${CFG_HAVE_STRUPR}")
+#try_compile(CFG_HAVE_STRUPR
+#            ${CMAKE_CURRENT_BINARY_DIR}
+#            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure_strupr.c
+#            OUTPUT_VARIABLE LOG_HAVE_STRUPR)
+#message(STATUS "CFG_HAVE_STRUPR: ${CFG_HAVE_STRUPR}")
 #message(STATUS "LOG_HAVE_STRUPR: ${LOG_HAVE_STRUPR}")
+
+INCLUDE(CheckSymbolExists)
+CHECK_SYMBOL_EXISTS(strupr "string.h" CFG_HAVE_STRUPR)
+message(STATUS "CFG_HAVE_STRUPR: ${CFG_HAVE_STRUPR}")
+
 
 
 #----------------------------------------------------------------------------
