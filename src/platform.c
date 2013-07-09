@@ -1,6 +1,8 @@
 
 #include <string.h>
 
+#include "platform.h"
+
 #if CFG_HAVE_STRUPR==0
 void strupr(char *pszString)
 {

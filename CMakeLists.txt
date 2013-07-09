@@ -19,7 +19,8 @@ INCLUDE(CheckSymbolExists)
 CHECK_SYMBOL_EXISTS(strupr "string.h" CFG_HAVE_STRUPR)
 message(STATUS "CFG_HAVE_STRUPR: ${CFG_HAVE_STRUPR}")
 
-
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/configure/configure.h
+               ${CMAKE_CURRENT_BINARY_DIR}/configure/configure.h)
 
 #----------------------------------------------------------------------------
 #
@@ -41,7 +42,7 @@ set(SOURCES_libfat
 add_library(TARGET_libfat STATIC ${SOURCES_libfat})
 
 #target_include_directories(TARGET_libfat PUBLIC src)
-INCLUDE_DIRECTORIES(src)
+INCLUDE_DIRECTORIES(src ${CMAKE_CURRENT_BINARY_DIR}/configure)
 
 
 #----------------------------------------------------------------------------
@@ -56,7 +57,7 @@ set(SOURCES_libramdisk
 add_library(TARGET_libramdisk STATIC ${SOURCES_libramdisk})
 
 #target_include_directories(TARGET_libramdisk PUBLIC src)
-INCLUDE_DIRECTORIES(src)
+INCLUDE_DIRECTORIES(src ${CMAKE_CURRENT_BINARY_DIR}/configure)
 
 
 #----------------------------------------------------------------------------
@@ -68,12 +69,6 @@ set(SOURCES_fattool
 	src/fat_tool.cpp
 	src/fatfs.cpp
 )
-
-if(${CFG_HAVE_STRUPR}==FALSE)
-	add_definitions(-DCFG_HAVE_STRUPR=0)
-else(${CFG_HAVE_STRUPR}==FALSE)
-	add_definitions(-DCFG_HAVE_STRUPR=1)
-endif(${CFG_HAVE_STRUPR}==FALSE)
 
 add_executable(TARGET_fattool ${SOURCES_fattool})
 target_link_libraries(TARGET_fattool TARGET_libfat TARGET_libramdisk)
