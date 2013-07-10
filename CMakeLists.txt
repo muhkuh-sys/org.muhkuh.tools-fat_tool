@@ -10,12 +10,19 @@ if(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
 ENDIF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 
+
+#----------------------------------------------------------------------------
+#
+# Configure the environment.
+#
+
 INCLUDE(CheckSymbolExists)
 CHECK_SYMBOL_EXISTS(strupr "string.h" CFG_HAVE_STRUPR)
 message(STATUS "CFG_HAVE_STRUPR: ${CFG_HAVE_STRUPR}")
 
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/configure/configure.h
                ${CMAKE_CURRENT_BINARY_DIR}/configure/configure.h)
+
 
 #----------------------------------------------------------------------------
 #
@@ -79,7 +86,10 @@ SET(CPACK_PACKAGE_VERSION_MINOR "0")
 SET(CPACK_PACKAGE_VERSION_PATCH "0")
 
 STRING(TOLOWER ${CMAKE_SYSTEM_NAME} POM_ID_OS)
-SET(POM_ID_PROCESSOR ${CMAKE_SYSTEM_PROCESSOR})
+IF(NOT DEFINED TARGET_PROCESSOR)
+	SET(TARGET_PROCESSOR ${CMAKE_SYSTEM_PROCESSOR})
+ENDIF(NOT DEFINED TARGET_PROCESSOR)
+SET(POM_ID_PROCESSOR ${TARGET_PROCESSOR})
 SET(POM_FAT_TOOL_VER ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH})
 STRING(REPLACE . _ POM_ID_FAT_TOOL_VER ${POM_FAT_TOOL_VER})
 SET(POM_MBS_RELEASE_VERSION 1)
@@ -96,4 +106,6 @@ CONFIGURE_FILE(pom/fat_tool.pom ${PROJECT_NAME}_${POM_ID_OS}_${POM_ID_PROCESSOR}
 INSTALL(TARGETS TARGET_fattool
         RUNTIME DESTINATION ${PROJECT_NAME}-${POM_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION}
 )
+
+#----------------------------------------------------------------------------
 
