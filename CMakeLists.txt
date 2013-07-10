@@ -1,19 +1,14 @@
 cmake_minimum_required (VERSION 2.8)
 
+
 project(fat_tool)
+
 
 if(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 	# Do not show msvs security warnings about unsafe functions.
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
 ENDIF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
-
-#try_compile(CFG_HAVE_STRUPR
-#            ${CMAKE_CURRENT_BINARY_DIR}
-#            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure_strupr.c
-#            OUTPUT_VARIABLE LOG_HAVE_STRUPR)
-#message(STATUS "CFG_HAVE_STRUPR: ${CFG_HAVE_STRUPR}")
-#message(STATUS "LOG_HAVE_STRUPR: ${LOG_HAVE_STRUPR}")
 
 INCLUDE(CheckSymbolExists)
 CHECK_SYMBOL_EXISTS(strupr "string.h" CFG_HAVE_STRUPR)
@@ -73,4 +68,32 @@ set(SOURCES_fattool
 add_executable(TARGET_fattool ${SOURCES_fattool})
 target_link_libraries(TARGET_fattool TARGET_libfat TARGET_libramdisk)
 set_property(TARGET TARGET_fattool PROPERTY OUTPUT_NAME "fat_tool")
+
+#----------------------------------------------------------------------------
+#
+# Build the distribution.
+#
+
+SET(CPACK_PACKAGE_VERSION_MAJOR "1")
+SET(CPACK_PACKAGE_VERSION_MINOR "0")
+SET(CPACK_PACKAGE_VERSION_PATCH "0")
+
+STRING(TOLOWER ${CMAKE_SYSTEM_NAME} POM_ID_OS)
+SET(POM_ID_PROCESSOR ${CMAKE_SYSTEM_PROCESSOR})
+SET(POM_FAT_TOOL_VER ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH})
+STRING(REPLACE . _ POM_ID_FAT_TOOL_VER ${POM_FAT_TOOL_VER})
+SET(POM_MBS_RELEASE_VERSION 1)
+
+SET(CPACK_INCLUDE_TOPLEVEL_DIRECTORY FALSE)
+SET(CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME}_${POM_ID_OS}_${POM_ID_PROCESSOR}-${POM_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION})
+
+SET(CPACK_GENERATOR "TBZ2")
+INCLUDE(CPack)
+
+# Build the POM file.
+CONFIGURE_FILE(pom/fat_tool.pom ${PROJECT_NAME}_${POM_ID_OS}_${POM_ID_PROCESSOR}-${POM_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION}.pom)
+
+INSTALL(TARGETS TARGET_fattool
+        RUNTIME DESTINATION ${PROJECT_NAME}-${POM_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION}
+)
 
