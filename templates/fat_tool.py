@@ -163,7 +163,8 @@ def truncate_emitter(target, source, env):
 	if len(source)!=1 and len(source)!=2:
 		raise Exception('There must be 1 or 2 sources for this rule, one bin file and optinally one config.')
 	
-	Depends(target, SCons.Node.Python.Value(env['FAT_TOOL_TRUNCATE_BLOCKSIZE']))
+	if 'FAT_TOOL_TRUNCATE_BLOCKSIZE' in env:
+		Depends(target, SCons.Node.Python.Value(env['FAT_TOOL_TRUNCATE_BLOCKSIZE']))
 	
 	return target, source
 
@@ -179,7 +180,6 @@ def ApplyToEnv(env):
 	strMbsRelease = '1'
 	
 	env['FAT_TOOL'] = os.path.join( os.path.dirname(os.path.realpath(__file__)), 'fat_tool-%s_%s'%(strVersion,strMbsRelease), 'fat_tool' )
-	env['FAT_TOOL_TRUNCATE_BLOCKSIZE'] = None
 	
 	flashimage_act = SCons.Action.Action(flashimage_action, flashimage_string)
 	flashimage_bld = Builder(action=flashimage_act, emitter=flashimage_emitter, suffix='.bin', src_suffix='.flc', single_source = 1)
