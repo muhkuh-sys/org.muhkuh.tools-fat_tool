@@ -94,22 +94,30 @@ def truncate_action(target, source, env):
 				raise Exception('Two bin files specified!')
 			tFileBin = tSource
 	
-	# Get the block size. The default is 1024.
-	ulBlockSize = 1024
-	if not tFileCfg is None:
-		# Get the complete file contents.
-		strCfg = tFileCfg.get_contents()
-		tMatch = re.match('-create\s+(\d+)\s+', strCfg)
-		if not tMatch is None:
-			ulBlockSize = long(tMatch.group(1))
-		else:
-			tMatch = re.match('-create\s+0[xX]([0-9a-fA-F]+)\s+', strCfg)
-			if not tMatch is None:
-				ulBlockSize = long(tMatch.group(1), 16)
-			else:
-				raise Exception('Failed to extract the block size from the configuration!')
+	if not 'FAT_TOOL_TRUNCATE_BLOCKSIZE' in env:
+		ulBlockSize = None
+	else:
+		ulBlockSize = env['FAT_TOOL_TRUNCATE_BLOCKSIZE']
 	
-	# Get the file size.	
+	if ulBlockSize is None:
+		# Get the block size. The default is 1024.
+		ulBlockSize = 1024
+		if not tFileCfg is None:
+			# Get the complete file contents.
+			strCfg = tFileCfg.get_contents()
+			tMatch = re.match('-create\s+(\d+)\s+', strCfg)
+			if not tMatch is None:
+				ulBlockSize = long(tMatch.group(1))
+			else:
+				tMatch = re.match('-create\s+0[xX]([0-9a-fA-F]+)\s+', strCfg)
+				if not tMatch is None:
+					ulBlockSize = long(tMatch.group(1), 16)
+				else:
+					raise Exception('Failed to extract the block size from the configuration!')
+	else:
+		ulBlockSize = long(env['FAT_TOOL_TRUNCATE_BLOCKSIZE'])
+	
+	# Get the file size.
 	ulFileSize = tFileBin.get_size()
 	# The file must contain at least one block.
 	if ulFileSize<ulBlockSize:
@@ -155,6 +163,8 @@ def truncate_emitter(target, source, env):
 	if len(source)!=1 and len(source)!=2:
 		raise Exception('There must be 1 or 2 sources for this rule, one bin file and optinally one config.')
 	
+	Depends(target, SCons.Node.Python.Value(env['FAT_TOOL_TRUNCATE_BLOCKSIZE']))
+	
 	return target, source
 
 
@@ -169,6 +179,7 @@ def ApplyToEnv(env):
 	strMbsRelease = '1'
 	
 	env['FAT_TOOL'] = os.path.join( os.path.dirname(os.path.realpath(__file__)), 'fat_tool-%s_%s'%(strVersion,strMbsRelease), 'fat_tool' )
+	env['FAT_TOOL_TRUNCATE_BLOCKSIZE'] = None
 	
 	flashimage_act = SCons.Action.Action(flashimage_action, flashimage_string)
 	flashimage_bld = Builder(action=flashimage_act, emitter=flashimage_emitter, suffix='.bin', src_suffix='.flc', single_source = 1)
