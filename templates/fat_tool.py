@@ -176,8 +176,8 @@ def truncate_string(target, source, env):
 
 
 def ApplyToEnv(env):
-	strVersion = '1.0.0'
-	strMbsRelease = '1'
+	strVersion = '${POM_FAT_TOOL_VER}'
+	strMbsRelease = '${POM_MBS_RELEASE_VERSION}'
 	
 	env['FAT_TOOL'] = os.path.join( os.path.dirname(os.path.realpath(__file__)), 'fat_tool-%s_%s'%(strVersion,strMbsRelease), 'fat_tool' )
 	
