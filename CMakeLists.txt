@@ -11,11 +11,11 @@ IF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 ENDIF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 
 # Check for MINGW compiler.
-IF((${CMAKE_SYSTEM_NAME} EQUAL "Windows") AND CMAKE_COMPILER_IS_GNUCC)
+IF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
 	# Link statically to libgcc and libstdc++ .
 	ADD_DEFINITIONS(-static-libgcc)
 	ADD_DEFINITIONS(-static-libstdc++)
-ENDIF((${CMAKE_SYSTEM_NAME} EQUAL "Windows") AND CMAKE_COMPILER_IS_GNUCC)
+ENDIF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
 
 
 #----------------------------------------------------------------------------
