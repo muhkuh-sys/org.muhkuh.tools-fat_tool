@@ -10,13 +10,6 @@ IF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
 ENDIF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 
-# Check for MINGW compiler.
-IF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
-	# Link statically to libgcc and libstdc++ .
-	ADD_DEFINITIONS(-static-libgcc)
-	ADD_DEFINITIONS(-static-libstdc++)
-ENDIF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
-
 
 #----------------------------------------------------------------------------
 #
@@ -82,6 +75,10 @@ set(SOURCES_fattool
 add_executable(TARGET_fattool ${SOURCES_fattool})
 target_link_libraries(TARGET_fattool TARGET_libfat TARGET_libramdisk)
 set_property(TARGET TARGET_fattool PROPERTY OUTPUT_NAME "fat_tool")
+IF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
+	set_property(TARGET TARGET_fattool PROPERTY LINK_FLAGS "--static -static-libgcc -static-libstdc++")
+ENDIF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
+
 
 #----------------------------------------------------------------------------
 #
