@@ -4,11 +4,18 @@ cmake_minimum_required (VERSION 2.8)
 project(fat_tool)
 
 
-if(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
+IF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
 	# Do not show msvs security warnings about unsafe functions.
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
 ENDIF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
+
+# Check for MINGW compiler.
+IF((${CMAKE_SYSTEM_NAME} EQUAL "Windows") AND CMAKE_COMPILER_IS_GNUCC)
+	# Link statically to libgcc and libstdc++ .
+	ADD_DEFINITIONS(-static-libgcc)
+	ADD_DEFINITIONS(-static-libstdc++)
+ENDIF((${CMAKE_SYSTEM_NAME} EQUAL "Windows") AND CMAKE_COMPILER_IS_GNUCC)
 
 
 #----------------------------------------------------------------------------
