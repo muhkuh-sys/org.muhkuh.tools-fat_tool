@@ -22,11 +22,13 @@ char* readFile(char* pszFilename, long *plsize) {
 		printf("Failed to stat file %s: %s\n", pszFilename, strerror(errno));
 		pabBuffer = NULL;
 	}
+#ifdef __GNUC__
 	else if( S_ISREG(tStatBuf.st_mode)==0 )
 	{
 		printf("The path %s does not point to a regular file!\n", pszFilename);
 		pabBuffer = NULL;
-	}
+	} 
+#endif
 	else
 	{
 		lsize = tStatBuf.st_size;
