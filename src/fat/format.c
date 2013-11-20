@@ -279,6 +279,7 @@ int formatFat(IO_INTERFACE *ptIo)
   FS_TYPE tFatType;
   unsigned long ulPartitionSize;
   unsigned long ulPartitionSectors;
+  unsigned long ulNormedPartitionSize;
   unsigned long ulFatControlledSectors;
   unsigned long ulReservedSectors;
   unsigned long ulRootDirEntries;
@@ -315,13 +316,18 @@ int formatFat(IO_INTERFACE *ptIo)
   /* get the number of sectors of the partition */
   ulPartitionSectors = ulPartitionSize / uiBytesPerSec;
 
+  /* MS FAT specification describes which FAT Type should be used for 
+     different partition sizes, but this is normed to 512 bytes.
+     So we use normalized Partitionsize by dividing it by (BytesPerSec / 512) */
+  ulNormedPartitionSize = ulPartitionSize / (uiBytesPerSec / 512);
+  
   /* get the usual fat type for the size */
-  if ( ulPartitionSize <= 4300800 )
+  if ( ulNormedPartitionSize <= 4300800 )
   {
     /* up to 4.1MB is FAT12 */
     tFatType = FS_FAT12;
   }
-  else if ( ulPartitionSize <= 34099200 )
+  else if ( ulNormedPartitionSize <= 34099200 )
   {
     /* up to 32.5MB is FAT16 */
     tFatType = FS_FAT16;
