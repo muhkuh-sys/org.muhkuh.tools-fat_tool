@@ -167,7 +167,7 @@ bool _FAT_directory_entryFromPosition (PARTITION* partition, DIR_ENTRY* entry);
 /*
 Fill in a stat struct based on a file entry
 */
-void _FAT_directory_entryStat (PARTITION* partition, DIR_ENTRY* entry, struct stat *st);
+/* void _FAT_directory_entryStat (PARTITION* partition, DIR_ENTRY* entry, struct stat *st); */
 
 bool _FAT_directory_isValidLfn (const char* name);
 bool _FAT_directory_isValidAlias (const char* name);

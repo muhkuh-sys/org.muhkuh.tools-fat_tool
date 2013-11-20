@@ -24,8 +24,6 @@
 #define PACKED_GCC  
 #define PACKED_PRE 
 #define PACKED_PST 
-#define S_IRUSR 0
-#define S_IWUSR 0
 #endif
 
 #endif /*COMPILER_H_*/

@@ -887,14 +887,15 @@ bool _FAT_directory_chdir (PARTITION* partition, const char* path) {
 	return true;
 }
 
+#if 0
 void _FAT_directory_entryStat (PARTITION* partition, DIR_ENTRY* entry, struct stat *st) {
 	// Fill in the stat struct
 	// Some of the values are faked for the sake of compatibility
 	st->st_dev = 0;					// The device is the 32bit ioType value
   	st->st_ino = (ino_t)(_FAT_directory_entryGetCluster(entry->entryData));		// The file serial number is the start cluster
 	st->st_mode = (_FAT_directory_isDirectory(entry) ? S_IFDIR : S_IFREG) |
-		(S_IRUSR /* | S_IRGRP | S_IROTH*/) |
-		(_FAT_directory_isWritable (entry) ? (S_IWUSR /*| S_IWGRP | S_IWOTH*/) : 0);		// Mode bits based on dirEntry ATTRIB byte
+		(S_IRUSR | S_IRGRP | S_IROTH) |
+		(_FAT_directory_isWritable (entry) ? (S_IWUSR | S_IWGRP | S_IWOTH) : 0);		// Mode bits based on dirEntry ATTRIB byte
 	st->st_nlink = 1;								// Always one hard link on a FAT file
 	st->st_uid = 1;									// Faked for FAT
 	st->st_gid = 2;									// Faked for FAT
@@ -920,3 +921,4 @@ void _FAT_directory_entryStat (PARTITION* partition, DIR_ENTRY* entry, struct st
 	//st->st_spare4[0] = 0;
 	//st->st_spare4[1] = 0;
 }
+#endif
