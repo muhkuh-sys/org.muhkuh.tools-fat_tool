@@ -193,6 +193,8 @@ int FileClose(FILE_STRUCT* ptFile)
 {
   u8 dirEntryData[DIR_ENTRY_DATA_SIZE];
   int iRet = 1;
+  unsigned long ulOldFilesize;
+  unsigned long ulOldStartCluster;
   
   // Load the old entry
   _FAT_cache_readPartialSector(ptFile->ptPartition->cache, 
@@ -202,27 +204,33 @@ int FileClose(FILE_STRUCT* ptFile)
                                ptFile->tDirEntryEnd.offset * DIR_ENTRY_DATA_SIZE, DIR_ENTRY_DATA_SIZE,
                                ptFile->ptPartition->bytesPerSector);
 
-  // Write new data to the directory entry
-  // File size
-  u32_to_u8array (dirEntryData, DIR_ENTRY_fileSize, ptFile->ulFilesize);
+  // Must the filesize and start cluster be updated?
+  ulOldFilesize = u8array_to_u32(dirEntryData, DIR_ENTRY_fileSize);
+  ulOldStartCluster = u8array_to_u16(dirEntryData, DIR_ENTRY_cluster) | (u8array_to_u16(dirEntryData, DIR_ENTRY_clusterHigh) << 16);
+  if( ulOldFilesize!=ptFile->ulFilesize || ulOldStartCluster!=ptFile->ulStartCluster )
+  {
+    // Write new data to the directory entry
+    // File size
+    u32_to_u8array (dirEntryData, DIR_ENTRY_fileSize, ptFile->ulFilesize);
   
-  // Start cluster
-  u16_to_u8array (dirEntryData, DIR_ENTRY_cluster, ptFile->ulStartCluster);
-  u16_to_u8array (dirEntryData, DIR_ENTRY_clusterHigh, ptFile->ulStartCluster >> 16);
+    // Start cluster
+    u16_to_u8array (dirEntryData, DIR_ENTRY_cluster, ptFile->ulStartCluster);
+    u16_to_u8array (dirEntryData, DIR_ENTRY_clusterHigh, ptFile->ulStartCluster >> 16);
 
-  /* ATTENTION: Modification time and date */
+    /* ATTENTION: Modification time and date */
 //  u16_to_u8array (dirEntryData, DIR_ENTRY_mTime, _FAT_filetime_getTimeFromRTC());
 //  u16_to_u8array (dirEntryData, DIR_ENTRY_mDate, _FAT_filetime_getDateFromRTC());
   
-  /* ATTENTION: Modify Access date */
+    /* ATTENTION: Modify Access date */
 //  u16_to_u8array (dirEntryData, DIR_ENTRY_aDate, _FAT_filetime_getDateFromRTC());
 
-  // Write the new entry
-  _FAT_cache_writePartialSector(ptFile->ptPartition->cache, 
-                                dirEntryData, 
-                                _FAT_fat_clusterToSector(ptFile->ptPartition, ptFile->tDirEntryEnd.cluster) + ptFile->tDirEntryEnd.sector,
-                                ptFile->tDirEntryEnd.offset * DIR_ENTRY_DATA_SIZE, DIR_ENTRY_DATA_SIZE,
-                                ptFile->ptPartition->bytesPerSector);
+    // Write the new entry
+    _FAT_cache_writePartialSector(ptFile->ptPartition->cache, 
+                                  dirEntryData, 
+                                  _FAT_fat_clusterToSector(ptFile->ptPartition, ptFile->tDirEntryEnd.cluster) + ptFile->tDirEntryEnd.sector,
+                                  ptFile->tDirEntryEnd.offset * DIR_ENTRY_DATA_SIZE, DIR_ENTRY_DATA_SIZE,
+                                  ptFile->ptPartition->bytesPerSector);
+  }
 
   // Flush any sectors in the disc cache
   if (!_FAT_cache_flush(ptFile->ptPartition->cache)) 
@@ -632,6 +640,20 @@ int FileRead(FILE_STRUCT *ptFile, void *pvData, unsigned long ulDataLen)
         ulRemain -= ulBlockSize;
         /* increase position */
         iResult = file_inc_position(ptPartition, &tPosition, ulBlockSize);
+
+        /* file_inc_position will try to switch to next cluster if possible
+           and returns an error on EOF. */
+        if( (0 == iResult)  &&
+            (0 == ulRemain) )
+        {
+          unsigned long ulNewFilePosition = ptFile->ulCurrentPosition + ulDataLen;
+          
+          if(ulNewFilePosition == ptFile->ulFilesize)
+          {
+            /* We will override this error here, as we have already read the whole file */
+            iResult = 1;
+          }
+        }
     }
 
     /* read partial sector? */
