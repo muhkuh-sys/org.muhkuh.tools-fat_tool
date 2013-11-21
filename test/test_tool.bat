@@ -1,6 +1,5 @@
 
 setlocal
-set PATH=..\msvc8\fat_tool\Release;%PATH%
 set FAT_TOOL=fat_tool.exe
 
 mkdir tmp
