@@ -116,8 +116,17 @@ CONFIGURE_FILE(templates/version.h configure/version.h )
 INSTALL(TARGETS TARGET_fattool
         RUNTIME DESTINATION ${PROJECT_NAME}-${POM_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION}
 )
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_${POM_ID_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION}.py
-        DESTINATION .)
+
+INSTALL(FILES 
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_${POM_ID_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION}.py
+        DESTINATION .
+)
+        
+INSTALL(FILES 
+        doc/readme.txt
+        doc/changelog.txt
+        DESTINATION ${PROJECT_NAME}-${POM_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION}/doc
+)
 
 #----------------------------------------------------------------------------
 

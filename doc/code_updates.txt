@@ -1,0 +1,131 @@
+Code changes
+=============
+
+Nov 21, 2013
+ 
+Updates of FAT code in BSL
+===========================
+  
+4963 mtrensch 10:26:01, Dienstag, 10. Juli 2012
+Merged revision(s) 13329 from hboot/branches/2nd_stage_loader/branches/V1.4.8.x:
+Formatting a Flash larger than 4MB using sector sizes > 512 bytes does not work, as FAT16 will be used which needs at least 4085 clusters, but less are available due to larger sectors
+Modified : /netX/Firmwares/hboot/branches/2nd_stage_loader/trunk/Sources/fat/format.c
+Allows formatting a file system in a 16 MByte flash with 4K sectors
+applied to FAT Tool: yes
+
+
+4913 mtrensch 11:50:27, Montag, 16. Januar 2012
+[#16318] - Ignoring EOF on FileRead() now, if whole file has been read already. 
+Modified : /netX/Firmwares/hboot/branches/2nd_stage_loader/trunk/Sources/fat/file_functions.c
+applied to FAT Tool: yes
+
+
+4874 mtrensch 08:49:07, Donnerstag, 11. August 2011
+NULL pointer dereference for sectorbuffer (did not cause problems as only 4 bytes were written and are not writable on netX)
+Modified : /netX/Firmwares/hboot/branches/2nd_stage_loader/trunk/Sources/fat/partition.c
+applied to FAT Tool: NO  (does not use sector buffers)
+
+ 
+4825 christoph 15:52:28, Dienstag, 12. April 2011
+only write directory entry in FileClose if something was changed
+Modified : /netX/Firmwares/hboot/branches/2nd_stage_loader/trunk/Sources/fat/file_functions.c
+applied to FAT Tool: yes  
+
+
+4807 mtrensch 12:15:41, Donnerstag, 10. März 2011
+RCX_FORMAT_REQ did not work via serial / USB due to stack overflow
+Modified : /netX/Firmwares/hboot/branches/2nd_stage_loader/trunk/Sources/fat/partition.c
+partition.c: possible stack overflow due to sector buffer allocated on stack. New version uses cache page as sector buffer
+applied to FAT Tool: NO  (does not use sector buffers)
+
+
+4764 mtrensch 10:01:16, Mittwoch, 17. November 2010
+Fixed compiler warnings (by using casts were necessary)
+Modified : /netX/Firmwares/hboot/branches/2nd_stage_loader/trunk/Sources/fat/partition.h
+partition.h declared IO_INTERFACE as const
+applied to FAT Tool: NO (insignificant change)
+
+
+4678 mtrensch 10:29:41, Montag, 12. Juli 2010
+FileOpenForRead may return success if a file does not exist
+Modified : /netX/Firmwares/hboot/branches/2nd_stage_loader/trunk/Sources/fat/file_functions.c
+applied to FAT Tool: yes
+
+		
+4657 mtrensch 12:27:07, Dienstag, 27. April 2010
+A14/A15 Workaround added as preprocessor define 
+Modified : /netX/Firmwares/hboot/branches/2nd_stage_loader/trunk/Sources/fat/partition.c
+applied to FAT Tool: NO (insignificant change)
+
+
+
+4963 format.c             Formatting a Flash larger than 4MB using sector sizes > 512 bytes does not work    applied
+4913 file_functions.c     FileRead Ignoring EOF on FileRead() now, if whole file has been read already.      applieed
+4874 partition.c          Korrektur in partition_constructor, NULL pointer dereference for sectorbuffer      not applied
+4825 File_functions.c     FileClose only write directory entry in FileClose if something was changed         applied
+4807 partition.c          Misuse first cache page as sector buffer                                           not applied
+4764 partition.h          const IO_INTERFACE                                                                 applied
+
+Changes above have been applied to FAT tool 2013 except those to partition.c 
+---------------------------------------------------------------------------------------------------------------------------------
+Changes below are already in the original (2010) version of FAT tool. Some of them have been removed because chunks of code were removed from partition.c
+
+4678 file_function.c      FileOpenForRead return 0 in cases of error    
+4657 partition.c          extern PARTITION* g_ptDefaultPartition;       
+4564 file_functions.c     added FileReadClusterchain 
+     file_functions.c     typedef CLUSTER_CHAIN
+4562 file_functions.c     changed comments
+4532 partition.c          moved creation of cache
+4519 partition.c          cache is created in _FAT_partition_init 
+4511 filetime.c           RTC functions commented out
+     format.c             changed comments
+4509 cache.h              #define STD_CACHE_PAGE_SIZE 512                                               
+     cache.c              CACHE_PAGE_SIZE -> cache->pageSize                                            
+     file_allocation_table.c renamed constant to EXT_CACHE_PAGE_SIZE                                    
+     format.c             memory saving: formerly static boot sector structure is now passed as argument
+     partition.c          extended partition_constructor
+                                                                                                           
+4480 cache.h              #define CACHE_PAGE_SIZE 4096  
+     partitin.c           #define MAXIMUM_CACHE_ENTRIES       3
+
+     
+2nd Stage loader tags     
+Tag V1.3.0.0 copied from rev. 4619 13.11.2009
+Tag V1.3.1.0 copied from rev. 4697 3.8.2010   FAT code is identical to 1.3.0.0 except: partition.c: extern PARTITION* g_ptDefaultPartition;
+
+
+Differences between FAT tool initial checkin and Rev. 9984
+cache_dummy.c  refactored some checks into cache_checkBoundaries
+directory.h    #define DIR_SEPARATOR '/'
+disk_io.h      added Error handler/vprintf
+partition.c    replaced space w. tab
+
+
+Differences between Rev. 9984 and Rev. 15050
+common.h       #if !defined(__cplusplus) enabled (comment removed)
+directory.c    #if defined(_MSC_VER) added
+partition.h    #include <stdlib.h> added
+
+
+Differences between BSL 1.3.0.0 (unpacked from archive) and FAT Tool rev. 9984
+cache_dummy.c      new
+common.h           typdefs commented out (ifdef)
+compiler.h         UNREFERENCED_PARAMETER, PACKED...
+directory.c        _FAT_directory_entryStat adapted
+directory.h        #define DIR_SEPARATOR '/'
+disk_io.h          added error handler/vprintf 
+fatdir.h           removed
+fatfile.h          removed
+file_functions.c   adapted #includes
+                   FileOpenForRead: return 0 if file does not exist
+                   added some printf's
+                   file MD5 function removed (disabled) 
+file_function.h    file MD5 function removed (disabled) 
+format.c           adapted #includes
+                   CalculateSectorSize removed (disabled), formatFat: uiBytesPerSec = ptIo->ulBlockSize; 
+format.h           adapted #includes
+                   PACKED_PRE/PST
+partition.c        major changes
+partition.h        removed: partition_init, _FAT_partition_setDefaultPartition,  _FAT_partition_getPartitionFromPath
+                   new:  _FAT_partition_recognize
+              

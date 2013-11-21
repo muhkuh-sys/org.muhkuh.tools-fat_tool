@@ -1,0 +1,5 @@
+Change log for FAT Tool
+
+V 1.0.1 
+ * Added ability to format a FAT12 file system on a flash larger than 4 MB (2nd stage loader patch 4963)
+ * Included some bug fixes for the FAT code from 2nd stage loader (2nd stage loader patch 4825 + 4913)
