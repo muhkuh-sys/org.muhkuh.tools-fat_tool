@@ -64,7 +64,7 @@ INCLUDE_DIRECTORIES(src ${CMAKE_CURRENT_BINARY_DIR}/configure)
 
 #----------------------------------------------------------------------------
 #
-# Build the RAM disk library.
+# Build the FAT tool.
 #
 
 set(SOURCES_fattool
@@ -109,6 +109,9 @@ CONFIGURE_FILE(templates/fat_tool.pom ${PROJECT_NAME}_${POM_ID_OS}_${POM_ID_PROC
 
 # Build the python file.
 CONFIGURE_FILE(templates/fat_tool.py ${PROJECT_NAME}_${POM_ID_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION}.py)
+
+# Build the version.h file
+CONFIGURE_FILE(templates/version.h configure/version.h )
 
 INSTALL(TARGETS TARGET_fattool
         RUNTIME DESTINATION ${PROJECT_NAME}-${POM_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION}

@@ -6,6 +6,7 @@
 #include <string.h>
 #include "fat_tool.h"
 #include "fatfs.h"
+#include "version.h"
 
 /* read file to newly allocated buffer */
 char* readFile(char* pszFilename, long *plsize) {
@@ -109,6 +110,7 @@ int readSize(char* pszArg, size_t *psize){
 
 void print_usage(){
 	printf(
+		"FAT Tool V" FAT_TOOL_VERSION_STRING "\n"
 		"Create and manipulate flash images with an embedded FAT file system\n"
 		"Usage: fat_tool <command>...\n"
 		"\n"
