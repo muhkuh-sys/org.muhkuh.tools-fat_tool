@@ -3,13 +3,8 @@ cmake_minimum_required (VERSION 2.8)
 
 project(fat_tool)
 
-
-IF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
-	# Do not show msvs security warnings about unsafe functions.
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-ENDIF(${CMAKE_BUILD_TOOL} MATCHES "(msdev|VCExpress|devenv|nmake)")
-
+ENABLE_TESTING()
+FIND_PACKAGE(Python3 REQUIRED COMPONENTS Interpreter)
 
 #----------------------------------------------------------------------------
 #
@@ -79,6 +74,12 @@ IF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
 	set_property(TARGET TARGET_fattool PROPERTY LINK_FLAGS "--static -static-libgcc -static-libstdc++")
 ENDIF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
 
+# Add tests for this module.
+IF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
+        # Here are the MinGW specific tests.
+        ADD_TEST(NAME fattool_MinGW_DLL_dependencies
+                 COMMAND "${Python3_EXECUTABLE}" ${CMAKE_HOME_DIRECTORY}/cmake/tests/mingw_dll_dependencies.py -u lua5.1 -u lua5.2 -u lua5.3 $<TARGET_FILE:TARGET_jam>)
+ENDIF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
 
 #----------------------------------------------------------------------------
 #
