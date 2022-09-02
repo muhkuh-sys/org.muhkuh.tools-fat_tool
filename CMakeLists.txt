@@ -124,9 +124,7 @@ INSTALL(FILES
         DESTINATION .
 )
 
-INSTALL(FILES
-        doc/readme.txt
-        doc/changelog.txt
+INSTALL(FILES README.md changelog.txt
         DESTINATION ${PROJECT_NAME}-${POM_FAT_TOOL_VER}_${POM_MBS_RELEASE_VERSION}/doc
 )
 
