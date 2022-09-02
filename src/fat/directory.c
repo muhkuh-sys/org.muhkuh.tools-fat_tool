@@ -786,7 +786,7 @@ bool _FAT_directory_addEntry (PARTITION* partition, DIR_ENTRY* entry, u32 dirClu
 		if (tmpCharPtr != NULL) {
 			alias[8] = '.';
 			// Copy extension
-			while ((tmpCharPtr != '\0') && (j < 12)) {
+			while ((*tmpCharPtr != '\0') && (j < 12)) {
 				alias[j] = tmpCharPtr[0];
 				++ tmpCharPtr;
 				++ j;
