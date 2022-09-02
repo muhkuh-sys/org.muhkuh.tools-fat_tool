@@ -870,7 +870,7 @@ unsigned long FileReadClusterchain(FILE_STRUCT *ptFile, CLUSTER_CHAIN *ptCluster
 
         /* write the new element */
         ptClusterChain->ulSector = _FAT_fat_clusterToSector(ptPartition, ulStartCluster) * ulSectorSize + ptPartition->disc->ulStartOffset;
-        ptClusterChain->ulSize = ulChunkSize/sizeof(unsigned long);
+        ptClusterChain->ulSize = ulChunkSize/sizeof(uint32_t);
         ++ptClusterChain;
         ++ulClusterCnt;
         if( ulClusterCnt>ulMaxTableEntries )

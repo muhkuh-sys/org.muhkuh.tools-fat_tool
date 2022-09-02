@@ -53,9 +53,9 @@ static const unsigned char abBootSector0[11] =
 
 typedef union
 {
-  unsigned char ab[EXT_CACHE_PAGE_SIZE];
-  unsigned short us[EXT_CACHE_PAGE_SIZE / sizeof(unsigned short)];
-  unsigned long ul[EXT_CACHE_PAGE_SIZE / sizeof(unsigned long)];
+  uint8_t  ab[EXT_CACHE_PAGE_SIZE];
+  uint16_t us[EXT_CACHE_PAGE_SIZE / sizeof(uint16_t)];
+  uint32_t ul[EXT_CACHE_PAGE_SIZE / sizeof(uint32_t)];
   fat_bootsec_t tFat;
   fat_direntry_t atDir[EXT_CACHE_PAGE_SIZE / sizeof(fat_direntry_t)];
   
