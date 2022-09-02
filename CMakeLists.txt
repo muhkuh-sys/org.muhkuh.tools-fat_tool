@@ -64,17 +64,12 @@ TARGET_INCLUDE_DIRECTORIES(TARGET_libramdisk
 # Build the RAM disk library.
 #
 
-# Build the version.h file
-CONFIGURE_FILE(templates/version.h configure/version.h )
-
 set(SOURCES_fattool
 	src/fat_tool.cpp
 	src/fatfs.cpp
 )
 
 add_executable(TARGET_fattool ${SOURCES_fattool})
-TARGET_INCLUDE_DIRECTORIES(TARGET_fattool
-                           PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/configure)
 target_link_libraries(TARGET_fattool TARGET_libfat TARGET_libramdisk)
 set_property(TARGET TARGET_fattool PROPERTY OUTPUT_NAME "fat_tool")
 IF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
