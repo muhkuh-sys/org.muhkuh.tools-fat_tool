@@ -15,7 +15,7 @@ INCLUDE(CheckSymbolExists)
 CHECK_SYMBOL_EXISTS(strupr "string.h" CFG_HAVE_STRUPR)
 message(STATUS "CFG_HAVE_STRUPR: ${CFG_HAVE_STRUPR}")
 
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/configure/configure.h
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure/configure.h
                ${CMAKE_CURRENT_BINARY_DIR}/configure/configure.h)
 
 
