@@ -11,12 +11,12 @@
 PACKED_PRE
 typedef struct
 {
-  unsigned char BS_DrvNum;        /*!< irq 0x13 drive number  */
-  unsigned char BS_Reserved1;     /*!< reserved for nt crap   */
-  unsigned char BS_BootSig;       /*!< extended boot signature (0x29) */
-  unsigned char BS_VolID[4];      /*!< volume id  */
-  char          BS_VolLab[11];    /*!< volume label */
-  char          BS_FilSysType[8]; /*!< file system type ("FAT12   ", "FAT16   " or "FAT     ") */
+  uint8_t  BS_DrvNum;        /*!< irq 0x13 drive number  */
+  uint8_t  BS_Reserved1;     /*!< reserved for nt crap   */
+  uint8_t  BS_BootSig;       /*!< extended boot signature (0x29) */
+  uint8_t  BS_VolID[4];      /*!< volume id  */
+  char     BS_VolLab[11];    /*!< volume label */
+  char     BS_FilSysType[8]; /*!< file system type ("FAT12   ", "FAT16   " or "FAT     ") */
 } PACKED_PST fat16_bootsec_t;
 
 /*****************************************************************************/
@@ -25,13 +25,13 @@ typedef struct
 PACKED_PRE
 typedef struct
 {
-  unsigned long  BPB_FATSz32;      /*!< fat32 count of sectors for one fat */
-  unsigned short BPB_ExtFlags;     /*!< mirroring flags */
-  unsigned short BPB_FSVer;        /*!< fat32 version number */
-  unsigned long  BPB_RootClus;     /*!< first cluster of the root directory */
-  unsigned short BPB_FSInfo;       /*!< sector number of the fsinfo structure */
-  unsigned short BPB_BkBootSec;    /*!< sector number of a boot record copy */
-  unsigned char  BPB_Reserved[12]; /*!< blah */
+  uint32_t  BPB_FATSz32;      /*!< fat32 count of sectors for one fat */
+  uint16_t  BPB_ExtFlags;     /*!< mirroring flags */
+  uint16_t  BPB_FSVer;        /*!< fat32 version number */
+  uint32_t  BPB_RootClus;     /*!< first cluster of the root directory */
+  uint16_t  BPB_FSInfo;       /*!< sector number of the fsinfo structure */
+  uint16_t  BPB_BkBootSec;    /*!< sector number of a boot record copy */
+  uint8_t   BPB_Reserved[12]; /*!< blah */
   fat16_bootsec_t tFat16Part;
 } PACKED_PST fat32_bootsec_t;
 
@@ -41,20 +41,20 @@ typedef struct
 PACKED_PRE
 typedef struct
 {
-  unsigned char  BS_jmpBoot[3];    /*!< jump  */
+  uint8_t  BS_jmpBoot[3];    /*!< jump  */
   char           BS_OEMName[8];    /*!< blah  */
-  unsigned short BPB_BytsPerSec;   /*!< bytes per sector */
-  unsigned char  BPB_SecPerClus;   /*!< sectors per cluster */
-  unsigned short BPB_RsvdSecCnt;   /*!< number of reserved sectors */
-  unsigned char  BPB_NumFATs;      /*!< number of fat structures */
-  unsigned short BPB_RootEntCnt;   /*!< number of directory entries */
-  unsigned short BPB_TotSec16;     /*!< 16 bit total count of sectors */
-  unsigned char  BPB_Media;        /*!< media type */
-  unsigned short BPB_FATSz16;      /*!< fat12/16 count of sectors for one fat, 0 for fat32 */
-  unsigned short BPB_SecPerTrk;    /*!< sectors per track for irq 0x13 */
-  unsigned short BPB_NumHeads;     /*!< number of heads for irq 0x13 */
-  unsigned long  BPB_HiddSec;      /*!< number of hidden sectors */
-  unsigned long  BPB_TotSec32;     /*!< 32 bit total count of sectors */
+  uint16_t BPB_BytsPerSec;   /*!< bytes per sector */
+  uint8_t  BPB_SecPerClus;   /*!< sectors per cluster */
+  uint16_t BPB_RsvdSecCnt;   /*!< number of reserved sectors */
+  uint8_t  BPB_NumFATs;      /*!< number of fat structures */
+  uint16_t BPB_RootEntCnt;   /*!< number of directory entries */
+  uint16_t BPB_TotSec16;     /*!< 16 bit total count of sectors */
+  uint8_t  BPB_Media;        /*!< media type */
+  uint16_t BPB_FATSz16;      /*!< fat12/16 count of sectors for one fat, 0 for fat32 */
+  uint16_t BPB_SecPerTrk;    /*!< sectors per track for irq 0x13 */
+  uint16_t BPB_NumHeads;     /*!< number of heads for irq 0x13 */
+  uint32_t BPB_HiddSec;      /*!< number of hidden sectors */
+  uint32_t BPB_TotSec32;     /*!< 32 bit total count of sectors */
   PACKED_PRE
 	union                            /* fat 12/16/32 specific data */
   {
@@ -76,17 +76,17 @@ typedef struct
                                      name[0]==0xe5 -> free entry,
                                      name[0]==0x00 -> entry free and end of dir
                                      name[0]==0x05 -> free entry, kanji save (0xe5 is a valid kanji code) */
-  unsigned char   attr;         /*!< attributes */
-  unsigned char   ntRes;        /*!< reserved for nt crap */
-  unsigned char   crtTimeTenth; /*!< milisecond creation time stamp */
-  unsigned short  crtTime;      /*!< creation time stamp */
-  unsigned short  crtDate;      /*!< creation date stamp */
-  unsigned short  lstAccTime;   /*!< last access time */
-  unsigned short  fstClusHi;    /*!< high word of the first cluster number (always 0 for FAT12/16) */
-  unsigned short  wrtTime;      /*!< time of last write */
-  unsigned short  wrtDate;      /*!< date of last write */
-  unsigned short  fstClusLo;    /*!< low word of the first cluster number */
-  unsigned long   fileSize;     /*!< file size in bytes */
+  uint8_t   attr;         /*!< attributes */
+  uint8_t   ntRes;        /*!< reserved for nt crap */
+  uint8_t   crtTimeTenth; /*!< milisecond creation time stamp */
+  uint16_t  crtTime;      /*!< creation time stamp */
+  uint16_t  crtDate;      /*!< creation date stamp */
+  uint16_t  lstAccTime;   /*!< last access time */
+  uint16_t  fstClusHi;    /*!< high word of the first cluster number (always 0 for FAT12/16) */
+  uint16_t  wrtTime;      /*!< time of last write */
+  uint16_t  wrtDate;      /*!< date of last write */
+  uint16_t  fstClusLo;    /*!< low word of the first cluster number */
+  uint32_t   fileSize;     /*!< file size in bytes */
 }
 PACKED_PST fat_direntry_t;
 #pragma pack(pop)
