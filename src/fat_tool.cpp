@@ -166,6 +166,7 @@ int execute_commands(int argcnt, char** argv){
 
 	int iArg;
 	int iRemArgs;
+	char aucDefaultDir[2] = { '/', '\0' };
 
 	iArg = 1;  // skip exe filename
 	pFS = NULL;
@@ -314,7 +315,7 @@ int execute_commands(int argcnt, char** argv){
 				iArg ++;
 				iRemArgs --;
 			} else {
-				pszFilename = "/";
+				pszFilename = aucDefaultDir;
 			}
 
 			if (iRemArgs >= 1 && 0==strcmp("-r", argv[iArg+1])) {
