@@ -1,7 +1,7 @@
 #ifndef FORMAT_H_
 #define FORMAT_H_
 
-#include "fat/compiler.h"
+#include "fat/common.h"
 #include "fat/disk_io.h"
 
 #pragma pack(push, 1)
@@ -72,7 +72,7 @@ PACKED_PST fat_bootsec_t;
 PACKED_PRE
 typedef struct
 {
-  char            name[11];     /*!< 8+3 name,  
+  char            name[11];     /*!< 8+3 name,
                                      name[0]==0xe5 -> free entry,
                                      name[0]==0x00 -> entry free and end of dir
                                      name[0]==0x05 -> free entry, kanji save (0xe5 is a valid kanji code) */
