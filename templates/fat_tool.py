@@ -176,10 +176,9 @@ def truncate_string(target, source, env):
 
 
 def ApplyToEnv(env):
-	strVersion = '${POM_FAT_TOOL_VER}'
-	strMbsRelease = '${POM_MBS_RELEASE_VERSION}'
+	strVersion = '${PROJECT_VERSION}'
 	
-	env['FAT_TOOL'] = os.path.join( os.path.dirname(os.path.realpath(__file__)), 'fat_tool-%s_%s'%(strVersion,strMbsRelease), 'fat_tool' )
+	env['FAT_TOOL'] = os.path.join( os.path.dirname(os.path.realpath(__file__)), 'fat_tool-%s'%(strVersion), 'fat_tool' )
 	
 	flashimage_act = SCons.Action.Action(flashimage_action, flashimage_string)
 	flashimage_bld = Builder(action=flashimage_act, emitter=flashimage_emitter, suffix='.bin', src_suffix='.flc', single_source = 1)
