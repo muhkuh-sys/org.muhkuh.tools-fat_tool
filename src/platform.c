@@ -1,5 +1,6 @@
 
 #include <string.h>
+#include <ctype.h>
 
 #include "platform.h"
 
