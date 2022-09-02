@@ -47,7 +47,7 @@ jobs:
       with:
         submodules: recursive
     - name: Configure
-      run: mkdir build && cd build && cmake ${{ toolchainfile }} ..
+      run: mkdir build && cd build && cmake ${{ matrix.platform.toolchainfile }} ..
     - name: Build
       run: cd build && make && make package
     - name: Test
