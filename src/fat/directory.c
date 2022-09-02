@@ -50,6 +50,7 @@
 
 #include <ctype.h>
 
+#include "platform.h"
 #include "fat/directory.h"
 #include "fat/common.h"
 #include "fat/partition.h"
