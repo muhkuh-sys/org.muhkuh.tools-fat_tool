@@ -1,3 +1,5 @@
+Please note: this is the old readme from 2012. Some information might be out of date.
+
 22.3.2012
 
 The fatfs package allows to
