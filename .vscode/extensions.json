@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "EditorConfig.EditorConfig",
+        "twxs.cmake",
+        "ms-vscode.cmake-tools"
+    ]
+}
