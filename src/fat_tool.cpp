@@ -44,7 +44,7 @@ char* readFile(char* pszFilename, long *plsize) {
 				printf("could not allocate buffer for file\n");
 			} else {
 				iBytesRead = fread(pabBuffer, 1, lsize, fd);
-				printf("File size: %ld bytes, %d bytes read\n", lsize, iBytesRead);
+				printf("File size: %ld bytes, %ld bytes read\n", lsize, iBytesRead);
 
 				if (iBytesRead != lsize) {
 					printf("error reading file\n");
@@ -95,9 +95,9 @@ int readULArg(char* pszArg, unsigned long* pulVal){
 }
 
 int readSize(char* pszArg, size_t *psize){
-	if (1==sscanf(pszArg, "0x%x", psize)){
+	if (1==sscanf(pszArg, "0x%lx", psize)){
 		return 1;
-	} else if (1==sscanf(pszArg, "%d", psize)){
+	} else if (1==sscanf(pszArg, "%ld", psize)){
 		return 1;
 	} else {
 		printf("Can't parse %s as an integer\n", pszArg);
