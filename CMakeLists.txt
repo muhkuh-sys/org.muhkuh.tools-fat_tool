@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.8)
 
 
-PROJECT(org.muhkuh.tools-fat_tool
+PROJECT(fat_tool
         VERSION 1.0.1.1)
 
 ENABLE_TESTING()
@@ -85,7 +85,7 @@ ENDIF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC})
 IF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
         # Here are the MinGW specific tests.
         ADD_TEST(NAME fattool_MinGW_DLL_dependencies
-                 COMMAND "${Python3_EXECUTABLE}" ${CMAKE_HOME_DIRECTORY}/cmake/tests/mingw_dll_dependencies.py -u lua5.1 -u lua5.2 -u lua5.3 $<TARGET_FILE:TARGET_jam>)
+                 COMMAND "${Python3_EXECUTABLE}" ${CMAKE_HOME_DIRECTORY}/cmake/tests/mingw_dll_dependencies.py -u lua5.1 -u lua5.2 -u lua5.3 $<TARGET_FILE:TARGET_fattool>)
 ENDIF((${CMAKE_SYSTEM_NAME} STREQUAL "Windows") AND (${CMAKE_COMPILER_IS_GNUCC}))
 
 #----------------------------------------------------------------------------

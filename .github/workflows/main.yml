@@ -20,21 +20,25 @@ jobs:
           distribution-id: ubuntu
           distribution-version: "20.04"
           cpu-architecture: x86_64
+          toolchainfile: ""
         - # Ubuntu 22.04 x86_64
           image: ghcr.io/muhkuh-sys/mbs_ubuntu_2204_x86_64:latest
           distribution-id: ubuntu
           distribution-version: "22.04"
           cpu-architecture: x86_64
+          toolchainfile: ""
         - # Windows x86
           image: ghcr.io/muhkuh-sys/mbs_ubuntu_2204_x86_64:latest
           distribution-id: windows
           distribution-version: ""
           cpu-architecture: x86
+          toolchainfile: "-DCMAKE_TOOLCHAIN_FILE=../cmake/toolchainfiles/toolchain_windows_32.cmake"
         - # Windows x86_64
           image: ghcr.io/muhkuh-sys/mbs_ubuntu_2204_x86_64:latest
           distribution-id: windows
           distribution-version: ""
           cpu-architecture: x86_64
+          toolchainfile: "-DCMAKE_TOOLCHAIN_FILE=../cmake/toolchainfiles/toolchain_windows_64.cmake"
     container: ${{ matrix.platform.image }}
     steps:
     - name: Checkout repository
@@ -43,7 +47,7 @@ jobs:
       with:
         submodules: recursive
     - name: Configure
-      run: mkdir build && cd build && cmake ..
+      run: mkdir build && cd build && cmake ${{ toolchainfile }} ..
     - name: Build
       run: cd build && make && make package
     - name: Test
